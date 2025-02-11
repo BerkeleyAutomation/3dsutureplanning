@@ -6,8 +6,14 @@ import networkx as nx
 import scipy.interpolate as inter
 from scipy.interpolate import splprep, splev
 from Optimizer3d import Optimizer3d
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from EdgeDetector import line_to_spline_3d
 
-
+def make_spline_pts(x_low, x_high, surface_function, granularity=50):
+        samples_x = np.linspace(x_low, x_high, granularity)
+        samples_y = spline_x_y_function(samples_x)
+        samples_z = np.array([surface_function(samples_x[i], samples_y[i]) for i in range(len(samples_y))])
+        return np.array([samples_x, samples_y, samples_z]).T
 
 if __name__ == "__main__":
     # make mesh (no need for randomness!)
@@ -20,23 +26,56 @@ if __name__ == "__main__":
     width_sample_granularity = 100
     viz = True
     def surface_function(x, y):
-        return 0.5*np.cos(8*x) + np.cos(6*y)
+        return 0.05*np.cos(8*x) + 0.1*np.cos(6*y)
+    
+    # based on surface_function, what is the normal vector at
+    # a given x, y coordinate
+    def surface_normal_vector(x, y):
+        return np.array([0.4*np.sin(8*x), 0.6*np.sin(6*y), 1])
     
     def spline_x_y_function(x):
         return 6*x**2 - 0.3
     
-    def make_spline_pts(x_low, x_high, surface_function, granularity=50):
-        samples_x = np.linspace(x_low, x_high, granularity)
-        samples_y = spline_x_y_function(samples_x)
-        samples_z = np.array([surface_function(samples_x[i], samples_y[i]) for i in range(len(samples_y))])
-        return samples_x, samples_y, samples_z
+    def width_function(t):
+        return 0.04*(1-2 *np.abs(t-0.5))+0.02
     
-    # need to fit spline to pts
+    # Compute normal vectors for the spline
+    def compute_normals(x, y):
+        dx = np.gradient(x)
+        dy = np.gradient(y)
+        norm = np.sqrt(dx**2 + dy**2)
+        
+        # Normalized tangent vectors
+        tx, ty = dx / norm, dy / norm
 
+        # Rotate 90 degrees to get normals
+        nx, ny = -ty, tx
+        return nx, ny
+    
+    def get_pts_and_vecs(spline, d_spline, granularity):
+        x_pts = np.array([spline[0](t/(granularity-1)) for t in range(granularity)])
+        y_pts = np.array([spline[1](t/(granularity-1)) for t in range(granularity)])
+        z_pts = np.array([spline[2](t/(granularity-1)) for t in range(granularity)])
+
+        # evenly spaced points along spline
+        pts = np.array([x_pts, y_pts, z_pts]).T
+        vecs = np.zeros((len(x_pts), 3))
+
+        # now get the appropriate vectors
+        for t in range(granularity):
+            normal_vec = surface_normal_vector(pts[t][0], pts[t][1])
+            spline_vec = [d_spline[0](t/(granularity-1)), d_spline[1](t/(granularity-1)), d_spline[2](t/(granularity-1))]
+
+            left_vec = np.cross(normal_vec, spline_vec)
+
+            # normalize
+            vecs[t] = left_vec / np.linalg.norm(left_vec)
+
+        return pts, vecs
 
     # Generate x and y coordinates using linspace
-    x_values = np.linspace(-0.5, 0.5, 50)  # 50 points from -5 to 5 for x
-    y_values = np.linspace(-0.5, 0.5, 50)  # 50 points from -5 to 5 for y
+    x_values = np.linspace(-0.5, 0.5, 100)
+    y_values = np.linspace(-0.5, 0.5, 100)  
 
     # Create a meshgrid for x and y (this gives us all combinations of x and y)
     x_grid, y_grid = np.meshgrid(x_values, y_values)
@@ -48,7 +87,7 @@ if __name__ == "__main__":
     points = np.column_stack((x_grid.flatten(), y_grid.flatten(), z_grid.flatten()))
 
     # Now 'points' is a list of 3D points (x, y, z) on the surface
-    print(points)
+    print("points", points)
 
     # add points to mesh
     mesh = MeshIngestor(None, None)
@@ -62,55 +101,40 @@ if __name__ == "__main__":
     mesh.kd_tree = cKDTree(mesh.vertex_coordinates)
     mesh.vertex_coordinates = np.array(mesh.vertex_coordinates)
 
+    # setup for mesh is done
     mesh.is_mesh = True
 
     spline_x_start, spline_x_end = -0.1, 0.3
 
     # make sim spline
-    spline = make_spline_pts(spline_x_start, spline_x_end, surface_function, 50)
-    x_line, y_line, z_line = spline
-    # if viz:
-    #     fig = plt.figure(figsize=(10, 10))
-    #     ax = fig.add_subplot(111, projection='3d')
-    #     ax.scatter(x_grid.flatten(), y_grid.flatten(), z_grid.flatten(), c=z_grid.flatten(), cmap='viridis', marker='o')
-    #     ax.plot(x_line, y_line, z_line, color='r', marker='o', label='Line')
-    #     plt.show()
+    spline_pts = make_spline_pts(spline_x_start, spline_x_end, surface_function, 50)
 
-    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    # fit a spline to these points
+    # calculate the first and second derivative, for later
+    spline = line_to_spline_3d(spline_pts, s_factor=0)
+    d_spline = [spline[0].derivative(), spline[1].derivative(), spline[2].derivative()]
+    d2_spline = [spline[0].derivative(2), spline[1].derivative(2), spline[2].derivative(2)]
 
-    def width_function(t):
-        # return 0.03 * (1 - 2 * np.abs(t - 0.5))
-        return 0.02*(1-2 *np.abs(t-0.5))+0.01
+    # number of points to sample
+    granularity = 100
 
-    # Compute normal vectors for the spline
-    def compute_normals(x, y):
-        dx = np.gradient(x)
-        dy = np.gradient(y)
-        norm = np.sqrt(dx**2 + dy**2)
-        
-        # Normalized tangent vectors
-        tx, ty = dx / norm, dy / norm
+    # get points along the wound and vectors on the ribbon 
+    # perpendicular to the spline
+    even_spline_pts, even_spline_vecs = get_pts_and_vecs(spline, d_spline, granularity)
 
-        # Rotate 90 degrees to get normals
-        nx, ny = -ty, tx
-        return nx, ny
+    # get the border points
 
-    # Generate base spline
-    spline_x_start, spline_x_end = -0.1, 0.3
-    x_spline, y_spline, z_spline = make_spline_pts(spline_x_start, spline_x_end, surface_function, 50)
+    left_pts = np.zeros((granularity, 3))
+    right_pts = np.zeros((granularity, 3))
 
-    # Compute normal vectors
-    nx, ny = compute_normals(x_spline, y_spline)
+    for t in range(granularity):
+        current_width = width_function(t/(granularity-1))
+        left_pts[t] = even_spline_pts[t] + even_spline_vecs[t]*current_width
+        right_pts[t] = even_spline_pts[t] - even_spline_vecs[t]*current_width
 
-    # Generate left and right offsets
-    t_values = np.linspace(0, 1, len(x_spline))
-    w = width_function(t_values)  # Compute width at each point
-    left_x, left_y = x_spline + w * nx, y_spline + w * ny
-    right_x, right_y = x_spline - w * nx, y_spline - w * ny
-
-    # Compute Z values for left and right splines
-    left_z = np.array([surface_function(left_x[i], left_y[i]) for i in range(len(left_x))])
-    right_z = np.array([surface_function(right_x[i], right_y[i]) for i in range(len(right_x))])
+    left_x, left_y, left_z = left_pts[:, 0], left_pts[:, 1], left_pts[:, 2]
+    right_x, right_y, right_z = right_pts[:, 0], right_pts[:, 1], right_pts[:, 2]
+    
 
     # Create a surface fill using triangles
     faces = []
@@ -131,14 +155,14 @@ if __name__ == "__main__":
     ax = fig.add_subplot(111, projection='3d')
 
     # Plot original surface
-    ax.scatter(x_grid.flatten(), y_grid.flatten(), z_grid.flatten(), c=z_grid.flatten(), cmap='viridis', marker='o', alpha=0.3)
+    ax.scatter(x_grid.flatten(), y_grid.flatten(), z_grid.flatten(), c=z_grid.flatten(), cmap='viridis', marker='o', alpha=0.1)
 
     # Plot center spline
     # ax.plot(x_spline, y_spline, z_spline, color='r', label="Center Spline", marker='o')
 
     # Plot width-adjusted splines
     ax.plot(left_x, left_y, left_z, color='r', label="Left Boundary", marker='o')
-    ax.plot(right_x, right_y, right_z, color='r', label="Right Boundary", marker='o')
+    ax.plot(right_x, right_y, right_z, color='g', label="Right Boundary", marker='o')
 
     # Fill in the surface
     ax.add_collection3d(Poly3DCollection(faces, alpha=0.6, facecolor='red', edgecolor='none'))
@@ -150,28 +174,27 @@ if __name__ == "__main__":
     ))
 
     # define t based on cumulative dists
-    spline3d = [inter.UnivariateSpline(t_values, x_spline, s=0), inter.UnivariateSpline(t_values, y_spline, s=0), inter.UnivariateSpline(t_values, z_spline, s=0)]
+    ax.plot(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], color='b', label="Center Spline", marker='o')
 
-    granularity = 99
-
-    x_pts = [spline3d[0](t/granularity) for t in range(granularity+1)]
-    y_pts = [spline3d[1](t/granularity) for t in range(granularity+1)]
-    z_pts = [spline3d[2](t/granularity) for t in range(granularity+1)]
-
-    ax.plot(x_pts, y_pts, z_pts, color='b', label="Center Spline", marker='o')
-
+    extra_vecs = False
+    if extra_vecs:
+        # plot the normal vectors
+        for t in range(granularity):
+            normal_vec = surface_normal_vector(even_spline_pts[t][0], even_spline_pts[t][1])
+            ax.quiver(even_spline_pts[t][0], even_spline_pts[t][1], even_spline_pts[t][2], normal_vec[0], normal_vec[1], normal_vec[2], length=0.05, normalize=True)
+            ax.quiver(even_spline_pts[t][0], even_spline_pts[t][1], even_spline_pts[t][2], d_spline[0](t/(granularity-1)), d_spline[1](t/(granularity-1)), d_spline[2](t/(granularity-1)), length=0.05, normalize=True)
+            ax.quiver(even_spline_pts[t][0], even_spline_pts[t][1], even_spline_pts[t][2], even_spline_vecs[t][0], even_spline_vecs[t][1], even_spline_vecs[t][2], length=0.05, normalize=True)
+    
     ax.legend()
+    ax.set_aspect('equal')
     plt.show()
 
-    derivative_x, derivative_y, derivative_z = spline3d[0].derivative(), spline3d[1].derivative(), spline3d[2].derivative()
-    derivative_x2, derivative_y2, derivative_z2 = spline3d[0].derivative(2), spline3d[1].derivative(2), spline3d[2].derivative(2)
-    
 
     curvature_arr = []
-    for i in range(granularity+1):
-        t = i / granularity
-        r_prime = np.array([derivative_x(t), derivative_y(t), derivative_z(t)])
-        r_double_prime = np.array([derivative_x2(t), derivative_y2(t), derivative_z2(t)])
+    for i in range(granularity):
+        t = i/(granularity-1)
+        r_prime = np.array([d_spline[0](t), d_spline[1](t), d_spline[2](t)])
+        r_double_prime = np.array([d2_spline[0](t), d2_spline[1](t), d2_spline[2](t)])
         curvature = np.linalg.norm(np.cross(r_prime, r_double_prime)) / np.linalg.norm(r_prime)**3
         # print(f"AT MIDPOINT T {midpt_t} the CURVATURE IS", curvature)
         curvature_arr.append(curvature)
@@ -184,7 +207,7 @@ if __name__ == "__main__":
     ax = plt.axes(projection='3d')
     plt.title("Spline curvature")
     print("max curve", max(curvature_arr))
-    p = ax.scatter3D(x_pts, y_pts, z_pts, c=curvature_arr)
+    p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=curvature_arr)
     fig.colorbar(p)
     plt.show()
 
@@ -212,7 +235,7 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     plt.title("Sigmoid eccentricity")
-    p = ax.scatter3D(x_pts, y_pts, z_pts, c=spacing)
+    p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=spacing)
     fig.colorbar(p)
     plt.show()
 
@@ -228,9 +251,10 @@ if __name__ == "__main__":
 
     force_model_parameters = {'ellipse_ecc': 1/0.5, 'force_decay': 0.5/0.005, 'verbose': 0, 'ideal_closure_force': None, 'imparted_force': None}
 
-    optim3d = Optimizer3d(mesh, spline3d, 0.005, hyperparams, force_model_parameters, spline3d, spacing, None, border_pts_3d)
+    # no need to smooth curve, so same argument (spline) for both
+    optim3d = Optimizer3d(mesh, spline, 0.005, hyperparams, force_model_parameters, spline, spacing, None, border_pts_3d)
 
-    spline_length = optim3d.calculate_spline_length(spline3d, mesh)
+    spline_length = optim3d.calculate_spline_length(spline, mesh)
     start_range = 5
     end_range = 7
 
@@ -254,7 +278,7 @@ if __name__ == "__main__":
     for num_sutures in range(start_range, end_range + 1):
         print("Num sutures:", num_sutures)
 
-        center_pts, insertion_pts, extraction_pts = optim3d.generate_inital_placement(mesh, spline3d, num_sutures=num_sutures)
+        center_pts, insertion_pts, extraction_pts = optim3d.generate_inital_placement(mesh, spline, num_sutures=num_sutures)
         #print("Normal vector", normal_vectors)
         optim3d.plot_mesh_path_and_spline()
         equally_spaced_losses[num_sutures] = optim3d.optimize(eval=True)
@@ -283,13 +307,13 @@ if __name__ == "__main__":
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     plt.title("CLOSURE FORCES FINAL")
-    p = ax.scatter3D(x_pts, y_pts, z_pts, c=final_closure)
+    p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=final_closure)
     fig.colorbar(p)
     plt.show()
 
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     plt.title("SHEAR FORCES FINAL")
-    p = ax.scatter3D(x_pts, y_pts, z_pts, c=final_shear)
+    p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=final_shear)
     fig.colorbar(p)
     plt.show()
