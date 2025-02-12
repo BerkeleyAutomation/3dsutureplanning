@@ -91,7 +91,7 @@ if __name__ == "__main__":
     points = np.column_stack((x_grid.flatten(), y_grid.flatten(), z_grid.flatten()))
 
     # Now 'points' is a list of 3D points (x, y, z) on the surface
-    print("points", points)
+    # print("points", points)
 
     # add points to mesh
     mesh = MeshIngestor(None, None)
@@ -207,14 +207,10 @@ if __name__ == "__main__":
         # print(f"AT MIDPOINT T {midpt_t} the CURVATURE IS", curvature)
         curvature_arr.append(curvature)
     
-    print('CURVATURE', curvature_arr)
-    print("MIN", np.min(curvature_arr))
-    print("MAX", np.max(curvature_arr))
 
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     plt.title("Spline curvature")
-    print("max curve", max(curvature_arr))
     p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=curvature_arr)
     fig.colorbar(p)
     plt.show()
@@ -237,7 +233,6 @@ if __name__ == "__main__":
 
     # Calculate the spacing using the sigmoid function
     spacing = (1/0.60) + sigmoid(scaled_curvature, L, k, x0)
-    print('SPACING', spacing)
     # get mesh from the surrounding points
 
     fig = plt.figure()
@@ -263,29 +258,20 @@ if __name__ == "__main__":
     optim3d = Optimizer3d(mesh, spline, 0.005, hyperparams, force_model_parameters, spline, spacing, None, border_pts_3d, faces=faces)
 
     spline_length = optim3d.calculate_spline_length(spline, mesh)
-    print("SPLINE LEN", spline_length)
+    # print("SPLINE LEN", spline_length)
     start_range = int(spline_length/gamma * 0.5)
     end_range = int(spline_length/gamma * 1.1)
 
-    # start_range = 6
-    # end_range = 10
+    start_range = 9
+    end_range = 10
 
-    print("range:", start_range, end_range)
+    # print("range:", start_range, end_range)
 
     equally_spaced_losses = {}
     post_algorithm_losses = {}
 
-
     best_baseline_loss = 1e8
-    best_baseline_placement = None
-
     best_opt_loss = 1e8
-    best_opt_insertion = None
-    best_opt_extraction = None
-    best_opt_center = None
-
-    final_closure = None
-    final_shear = None
 
     for num_sutures in range(start_range, end_range + 1):
         print("Num sutures:", num_sutures)
@@ -294,21 +280,35 @@ if __name__ == "__main__":
         #print("Normal vector", normal_vectors)
         # optim3d.plot_mesh_path_and_spline()
         equally_spaced_losses[num_sutures] = optim3d.optimize(eval=True)
-        print('Initial loss', equally_spaced_losses[num_sutures]["curr_loss"])
+        print('baseline loss', equally_spaced_losses[num_sutures]["curr_loss"])
+
+        if equally_spaced_losses[num_sutures]['curr_loss'] < best_baseline_loss:
+            best_baseline_num_sutures = num_sutures
+            best_baseline_optim = copy.deepcopy(optim3d)
         optim3d.optimize(eval=False)
     
         # optim3d.plot_mesh_path_and_spline(mesh, left_spline, viz=True, results_pth=baseline_pth)
         # optim3d.plot_mesh_path_and_spline(mesh, left_spline, viz=viz, results_pth=opt_pth)
 
         post_algorithm_losses[num_sutures] = optim3d.optimize(eval=True)
-        print('After loss', post_algorithm_losses[num_sutures]["curr_loss"])
+        print('opt loss', post_algorithm_losses[num_sutures]["curr_loss"])
 
         # optim3d.plot_mesh_path_and_spline()
+
         
         if post_algorithm_losses[num_sutures]["curr_loss"] < best_opt_loss:
             # print("Num sutures", num_sutures, "best loss so far")
+            best_opt_num_sutures = num_sutures
             best_opt_loss = post_algorithm_losses[num_sutures]["curr_loss"]
-            print("BEST LOSS", best_opt_loss)
+            best_baseline_loss = equally_spaced_losses[num_sutures]["curr_loss"]
+            # print("[opt] total loss", best_opt_loss)
+            # print("[opt] closure loss", post_algorithm_losses[num_sutures]["closure_loss"])
+            # print("[opt] shear loss", post_algorithm_losses[num_sutures]["shear_loss"])
+
+            # print("[baseline] total loss", best_baseline_loss)
+            # print("[baseline] closure loss", equally_spaced_losses[num_sutures]["closure_loss"])
+            # print("[baseline] shear loss", equally_spaced_losses[num_sutures]["shear_loss"])
+            
             best_opt_insertion = optim3d.insertion_pts
             best_opt_extraction = optim3d.extraction_pts
             best_opt_center = optim3d.center_pts
@@ -319,16 +319,28 @@ if __name__ == "__main__":
             best_optim = copy.deepcopy(optim3d)
 
     best_optim.plot_mesh_path_and_spline()
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    plt.title("CLOSURE FORCES FINAL")
-    p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=final_closure)
-    fig.colorbar(p)
-    plt.show()
+    # best_baseline_optim.plot_mesh_path_and_spline()
 
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    plt.title("SHEAR FORCES FINAL")
-    p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=final_shear)
-    fig.colorbar(p)
-    plt.show()
+    print("[opt] total loss", post_algorithm_losses[best_opt_num_sutures]["curr_loss"])
+    print("[opt] closure loss", post_algorithm_losses[best_opt_num_sutures]["closure_loss"])
+    print("[opt] shear loss", post_algorithm_losses[best_opt_num_sutures]["shear_loss"])
+
+    if equally_spaced_losses[best_baseline_num_sutures]["curr_loss"] == 1:
+        print("CONSTRAINTS NOT MET IN BASELINE!")
+    print("[baseline] total loss", equally_spaced_losses[best_baseline_num_sutures]["curr_loss"])
+    print("[baseline] closure loss", equally_spaced_losses[best_baseline_num_sutures]["closure_loss"])
+    print("[baseline] shear loss", equally_spaced_losses[best_baseline_num_sutures]["shear_loss"])
+
+    # fig = plt.figure()
+    # ax = plt.axes(projection='3d')
+    # plt.title("CLOSURE FORCES FINAL")
+    # p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=final_closure)
+    # fig.colorbar(p)
+    # plt.show()
+
+    # fig = plt.figure()
+    # ax = plt.axes(projection='3d')
+    # plt.title("SHEAR FORCES FINAL")
+    # p = ax.scatter3D(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], c=final_shear)
+    # fig.colorbar(p)
+    # plt.show()
