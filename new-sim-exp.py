@@ -26,18 +26,18 @@ if __name__ == "__main__":
     width_sample_granularity = 100
     viz = True
     def surface_function(x, y):
-        return 0.05*np.cos(8*x) + 0.1*np.cos(6*y)
+        return 0.01*np.cos(100*x) + 0.01*np.cos(60*y)
     
     # based on surface_function, what is the normal vector at
     # a given x, y coordinate
     def surface_normal_vector(x, y):
-        return np.array([0.4*np.sin(8*x), 0.6*np.sin(6*y), 1])
+        return np.array([1*np.sin(100*x), 0.6*np.sin(60*y), 1])
     
     def spline_x_y_function(x):
-        return 6*x**2 - 0.3
+        return 70*x**2 - 0.025
     
     def width_function(t):
-        return 0.04*(1-2 *np.abs(t-0.5))+0.02
+        return 0.002*(t-t**2)+0.001
     
     # Compute normal vectors for the spline
     def compute_normals(x, y):
@@ -74,8 +74,8 @@ if __name__ == "__main__":
         return pts, vecs
 
     # Generate x and y coordinates using linspace
-    x_values = np.linspace(-0.5, 0.5, 100)
-    y_values = np.linspace(-0.5, 0.5, 100)  
+    x_values = np.linspace(-0.05, 0.05, 100)
+    y_values = np.linspace(-0.05, 0.05, 100)
 
     # Create a meshgrid for x and y (this gives us all combinations of x and y)
     x_grid, y_grid = np.meshgrid(x_values, y_values)
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     # setup for mesh is done
     mesh.is_mesh = True
 
-    spline_x_start, spline_x_end = -0.1, 0.3
+    spline_x_start, spline_x_end = -0.01, 0.02
 
     # make sim spline
     spline_pts = make_spline_pts(spline_x_start, spline_x_end, surface_function, 50)
@@ -255,8 +255,9 @@ if __name__ == "__main__":
     optim3d = Optimizer3d(mesh, spline, 0.005, hyperparams, force_model_parameters, spline, spacing, None, border_pts_3d)
 
     spline_length = optim3d.calculate_spline_length(spline, mesh)
-    start_range = 5
-    end_range = 7
+    print("SPLINE LEN", spline_length)
+    start_range = int(spline_length/gamma * 0.7)
+    end_range = int(spline_length/gamma * 1.2)
 
     print("range:", start_range, end_range)
 
@@ -280,7 +281,7 @@ if __name__ == "__main__":
 
         center_pts, insertion_pts, extraction_pts = optim3d.generate_inital_placement(mesh, spline, num_sutures=num_sutures)
         #print("Normal vector", normal_vectors)
-        optim3d.plot_mesh_path_and_spline()
+        # optim3d.plot_mesh_path_and_spline()
         equally_spaced_losses[num_sutures] = optim3d.optimize(eval=True)
         print('Initial loss', equally_spaced_losses[num_sutures]["curr_loss"])
         optim3d.optimize(eval=False)
@@ -290,6 +291,8 @@ if __name__ == "__main__":
 
         post_algorithm_losses[num_sutures] = optim3d.optimize(eval=True)
         print('After loss', post_algorithm_losses[num_sutures]["curr_loss"])
+
+        # optim3d.plot_mesh_path_and_spline()
         
         if post_algorithm_losses[num_sutures]["curr_loss"] < best_opt_loss:
             # print("Num sutures", num_sutures, "best loss so far")
