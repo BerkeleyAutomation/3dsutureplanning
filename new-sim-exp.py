@@ -8,6 +8,8 @@ from scipy.interpolate import splprep, splev
 from Optimizer3d import Optimizer3d
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from EdgeDetector import line_to_spline_3d
+import copy
+
 
 def make_spline_pts(x_low, x_high, surface_function, granularity=50):
         samples_x = np.linspace(x_low, x_high, granularity)
@@ -34,10 +36,12 @@ if __name__ == "__main__":
         return np.array([1*np.sin(100*x), 0.6*np.sin(60*y), 1])
     
     def spline_x_y_function(x):
-        return 70*x**2 - 0.025
+        # return 70*x**2 - 0.025
+        return 100* np.sin(x)**2
     
     def width_function(t):
-        return 0.002*(t-t**2)+0.001
+        # return 0.002*(t-t**2)+0.001
+        return 0.003*(0.5+0.5*np.sin(1*np.pi * t -np.pi/2))+0.001
     
     # Compute normal vectors for the spline
     def compute_normals(x, y):
@@ -151,7 +155,7 @@ if __name__ == "__main__":
         ])
 
     # Visualization
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111, projection='3d')
 
     # Plot original surface
@@ -161,8 +165,8 @@ if __name__ == "__main__":
     # ax.plot(x_spline, y_spline, z_spline, color='r', label="Center Spline", marker='o')
 
     # Plot width-adjusted splines
-    ax.plot(left_x, left_y, left_z, color='r', label="Left Boundary", marker='o')
-    ax.plot(right_x, right_y, right_z, color='g', label="Right Boundary", marker='o')
+    # ax.plot(left_x, left_y, left_z, color='r', label="Left Boundary", marker='o')
+    # ax.plot(right_x, right_y, right_z, color='g', label="Right Boundary", marker='o')
 
     # Fill in the surface
     ax.add_collection3d(Poly3DCollection(faces, alpha=0.6, facecolor='red', edgecolor='none'))
@@ -174,7 +178,7 @@ if __name__ == "__main__":
     ))
 
     # define t based on cumulative dists
-    ax.plot(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], color='b', label="Center Spline", marker='o')
+    # ax.plot(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], color='b', label="Center Spline", marker='o')
 
     extra_vecs = False
     if extra_vecs:
@@ -185,8 +189,12 @@ if __name__ == "__main__":
             ax.quiver(even_spline_pts[t][0], even_spline_pts[t][1], even_spline_pts[t][2], d_spline[0](t/(granularity-1)), d_spline[1](t/(granularity-1)), d_spline[2](t/(granularity-1)), length=0.05, normalize=True)
             ax.quiver(even_spline_pts[t][0], even_spline_pts[t][1], even_spline_pts[t][2], even_spline_vecs[t][0], even_spline_vecs[t][1], even_spline_vecs[t][2], length=0.05, normalize=True)
     
-    ax.legend()
     ax.set_aspect('equal')
+
+    ax.grid(False)
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.set_zticklabels([])
     plt.show()
 
 
@@ -222,13 +230,13 @@ if __name__ == "__main__":
 
     curvature_arr = np.array(curvature_arr)
     scaled_curvature = curvature_arr / max(curvature_arr)
-    L = 1/0.5 - 0.77  # The range of the spacing values
+    L = (1/0.4) - (1/0.60)  # The range of the spacing values
     # more curve means 1/0.5 ellipse whereas less curve means greater
     k = 10  # The steepness of the curve
     x0 = 0.5  # The midpoint of the sigmoid
 
     # Calculate the spacing using the sigmoid function
-    spacing = 0.77 + sigmoid(scaled_curvature, L, k, x0)
+    spacing = (1/0.60) + sigmoid(scaled_curvature, L, k, x0)
     print('SPACING', spacing)
     # get mesh from the surrounding points
 
@@ -252,12 +260,15 @@ if __name__ == "__main__":
     force_model_parameters = {'ellipse_ecc': 1/0.5, 'force_decay': 0.5/0.005, 'verbose': 0, 'ideal_closure_force': None, 'imparted_force': None}
 
     # no need to smooth curve, so same argument (spline) for both
-    optim3d = Optimizer3d(mesh, spline, 0.005, hyperparams, force_model_parameters, spline, spacing, None, border_pts_3d)
+    optim3d = Optimizer3d(mesh, spline, 0.005, hyperparams, force_model_parameters, spline, spacing, None, border_pts_3d, faces=faces)
 
     spline_length = optim3d.calculate_spline_length(spline, mesh)
     print("SPLINE LEN", spline_length)
-    start_range = int(spline_length/gamma * 0.7)
-    end_range = int(spline_length/gamma * 1.2)
+    start_range = int(spline_length/gamma * 0.5)
+    end_range = int(spline_length/gamma * 1.1)
+
+    # start_range = 6
+    # end_range = 10
 
     print("range:", start_range, end_range)
 
@@ -305,8 +316,9 @@ if __name__ == "__main__":
             baseline_extraction = extraction_pts
             baseline_center = center_pts
             _, _, final_closure, _, _, _, _ = optim3d.compute_closure_shear_loss(granularity=100)
+            best_optim = copy.deepcopy(optim3d)
 
-
+    best_optim.plot_mesh_path_and_spline()
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     plt.title("CLOSURE FORCES FINAL")

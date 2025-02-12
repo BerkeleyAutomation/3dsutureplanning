@@ -8,6 +8,7 @@ import copy
 import trimesh
 from scipy.spatial import cKDTree
 import tensorflow as tf
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import cv2
 
 import scipy.optimize as optim
@@ -22,7 +23,7 @@ class Optimizer3d:
     suture_width: how far, in mm, the insertion and extraction points should be from the wound line
     hyperparameters: hyperparameters for our optimization
     """
-    def __init__(self, mesh: MeshIngestor, spline, suture_width, hyperparameters, force_model_parameters, smoothed_spline, spacing, left_image, border_pts_3d, synthetic=False):
+    def __init__(self, mesh: MeshIngestor, spline, suture_width, hyperparameters, force_model_parameters, smoothed_spline, spacing, left_image, border_pts_3d, synthetic=False, faces=None):
         self.mesh = mesh
         self.spline = spline
         self.smoothed_spline = smoothed_spline
@@ -90,6 +91,8 @@ class Optimizer3d:
             self.trimesh = scene.geometry['defaultMaterial']
         else:
             self.trimesh = None
+        
+        self.faces = faces
 
         # Ideal closure force calculated according to properties of the original diamond force model
         # If you want, can specify ideal_closure_force yourself, otherwise set to None and this calculation will be done
@@ -539,43 +542,30 @@ class Optimizer3d:
         
         # visaulize by default, save otherwise)
         
-        num_pts = len(self.insertion_pts)
-        fig = plt.figure()
-        ax = plt.axes(projection='3d')
-        ax.view_init(elev=90, azim=0)
-        plt.title(f"Surface and Spline for {num_pts} points")
-
         mesh_coords = self.mesh.vertex_coordinates
-        ax.scatter3D(mesh_coords[::5, 0], mesh_coords[::5, 1], mesh_coords[::5, 2], color='red', alpha=0.01)
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(mesh_coords[:, 0].flatten(), mesh_coords[:, 1].flatten(), mesh_coords[:, 2].flatten(), c=mesh_coords[:, 2].flatten(), cmap='viridis', marker='o', alpha=0.1)
 
+        granularity = 99
 
-        spline_x = self.spline[0]
-        spline_y = self.spline[1]
-        spline_z = self.spline[2]
+        # x_pts = [self.spline[0](t/granularity) for t in range(granularity+1)]
+        # y_pts = [self.spline[1](t/granularity) for t in range(granularity+1)]
+        # z_pts = [self.spline[2](t/granularity) for t in range(granularity+1)]
+        # ax.plot(x_pts, y_pts, z_pts, color='r', marker='o', label='Line')
 
-        spline_coords_x = []
-        spline_coords_y = []
-        spline_coords_z = []
+        if self.faces:
+            ax.add_collection3d(Poly3DCollection(self.faces, alpha=0.6, facecolor='red', edgecolor='none'))
+        num_pts = len(self.insertion_pts)
+        ax.scatter([self.insertion_pts[i][0] for i in range(num_pts)], [self.insertion_pts[i][1] for i in range(num_pts)], [self.insertion_pts[i][2] for i in range(num_pts)], c="blue", s=25)
+        ax.scatter([self.extraction_pts[i][0] for i in range(num_pts)], [self.extraction_pts[i][1] for i in range(num_pts)], [self.extraction_pts[i][2] for i in range(num_pts)], c="green", s=25)
 
-        for t in np.linspace(0, 1, spline_segments):
-            spline_coords_x.append(spline_x(t))
-            spline_coords_y.append(spline_y(t))
-            spline_coords_z.append(spline_z(t))
-
-        ax.plot(spline_coords_x, spline_coords_y, spline_coords_z, color='green')
-        ax.scatter([self.insertion_pts[i][0] for i in range(num_pts)], [self.insertion_pts[i][1] for i in range(num_pts)], [self.insertion_pts[i][2] for i in range(num_pts)], c="black", s=5)
-        ax.scatter([self.center_pts[i][0] for i in range(num_pts)], [self.center_pts[i][1] for i in range(num_pts)], [self.center_pts[i][2] for i in range(num_pts)], c="blue", s=5)
-        ax.scatter([self.extraction_pts[i][0] for i in range(num_pts)], [self.extraction_pts[i][1] for i in range(num_pts)], [self.extraction_pts[i][2] for i in range(num_pts)], c="purple", s=5)
-       
-        # ax.quiver([normal_vectors[i][0] + self.center_pts[i][0] for i in range(num_pts)], [normal_vectors[i][1] + self.center_pts[i][1] for i in range(num_pts)], [normal_vectors[i][2] + self.center_pts[i][2] for i in range(num_pts)], [normal_vectors[i][0] for i in range(num_pts)], [normal_vectors[i][1] for i in range(num_pts)], [normal_vectors[i][2] for i in range(num_pts)])
-        # ax.quiver([derivative_vectors[i][0] + self.center_pts[i][0] for i in range(num_pts)], [derivative_vectors[i][1] + self.center_pts[i][1] for i in range(num_pts)], [derivative_vectors[i][2] + self.center_pts[i][2] for i in range(num_pts)], [derivative_vectors[i][0] for i in range(num_pts)], [derivative_vectors[i][1] for i in range(num_pts)], [derivative_vectors[i][2] for i in range(num_pts)], color="red")
-        if viz:
-            plt.show()
-        else:
-            # save images and losses
-            save_str = results_pth + str(num_pts) + ".png"
-            plt.savefig(save_str)
-            plt.close()
+        ax.set_aspect('equal')
+        ax.grid(False)
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.set_zticklabels([])
+        plt.show()
 
     def plot_mesh_path_spline_and_forces(self, wound_pt, tot_insertion_force, tot_extraction_force, spline_segments=100):
         num_pts = len(self.insertion_pts)
