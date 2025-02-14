@@ -28,20 +28,30 @@ if __name__ == "__main__":
     width_sample_granularity = 100
     viz = True
     def surface_function(x, y):
-        return 0.01*np.cos(100*x) + 0.01*np.cos(60*y)
+        # return 0.01*np.cos(100*x) + 0.01*np.cos(60*y)
+        return 0.02*np.sin(50*y) + (2*x*np.exp(-1000*(x**2)))
     
     # based on surface_function, what is the normal vector at
     # a given x, y coordinate
     def surface_normal_vector(x, y):
-        return np.array([1*np.sin(100*x), 0.6*np.sin(60*y), 1])
+        return np.array([-2*np.exp(-1000*(x**2)) + -2*x*(np.exp(-1000*(x**2)))*-2000*x, -1*np.cos(30*y), 1])
     
     def spline_x_y_function(x):
+        # return 100* np.sin(x)**2
         # return 70*x**2 - 0.025
-        return 100* np.sin(x)**2
+        # return 5000*x**3 - 50*x**2
+        # return 8*(x+0.02)*np.exp(-80*(x+0.02))
+        # for 5 and 6
+        # return np.sqrt(0.0005 - x**2)
+        # return -30*(x-0.01)**2+0.03
+        # return 0.02*np.cos(80*x)-0.4*x
+        return 0.04 + 0.01*x
     
     def width_function(t):
-        # return 0.002*(t-t**2)+0.001
-        return 0.003*(0.5+0.5*np.sin(1*np.pi * t -np.pi/2))+0.001
+        # for wounds 1-6 except
+        # return 0.003*(0.5+0.5*np.sin(1*np.pi * t -np.pi/2))+0.001
+        # for wounds 2, 3
+        return 0.003*(t-t**2)+0.0005
     
     # Compute normal vectors for the spline
     def compute_normals(x, y):
@@ -108,7 +118,15 @@ if __name__ == "__main__":
     # setup for mesh is done
     mesh.is_mesh = True
 
+    # for experiments 1-6
     spline_x_start, spline_x_end = -0.01, 0.02
+
+    # 7-8
+    spline_x_start, spline_x_end = -0.01, 0.03
+
+    # 9
+    spline_x_start, spline_x_end = -0.04, 0.02
+
 
     # make sim spline
     spline_pts = make_spline_pts(spline_x_start, spline_x_end, surface_function, 50)
@@ -258,14 +276,14 @@ if __name__ == "__main__":
     optim3d = Optimizer3d(mesh, spline, 0.005, hyperparams, force_model_parameters, spline, spacing, None, border_pts_3d, faces=faces)
 
     spline_length = optim3d.calculate_spline_length(spline, mesh)
-    # print("SPLINE LEN", spline_length)
+    print("SPLINE LEN", spline_length)
     start_range = int(spline_length/gamma * 0.5)
     end_range = int(spline_length/gamma * 1.1)
 
-    start_range = 9
-    end_range = 10
+    # start_range = 9
+    # end_range = 10
 
-    # print("range:", start_range, end_range)
+    print("range:", start_range, end_range)
 
     equally_spaced_losses = {}
     post_algorithm_losses = {}
@@ -319,7 +337,7 @@ if __name__ == "__main__":
             best_optim = copy.deepcopy(optim3d)
 
     best_optim.plot_mesh_path_and_spline()
-    # best_baseline_optim.plot_mesh_path_and_spline()
+    best_baseline_optim.plot_mesh_path_and_spline()
 
     print("[opt] total loss", post_algorithm_losses[best_opt_num_sutures]["curr_loss"])
     print("[opt] closure loss", post_algorithm_losses[best_opt_num_sutures]["closure_loss"])
@@ -330,6 +348,9 @@ if __name__ == "__main__":
     print("[baseline] total loss", equally_spaced_losses[best_baseline_num_sutures]["curr_loss"])
     print("[baseline] closure loss", equally_spaced_losses[best_baseline_num_sutures]["closure_loss"])
     print("[baseline] shear loss", equally_spaced_losses[best_baseline_num_sutures]["shear_loss"])
+
+    printable_list = [post_algorithm_losses[best_opt_num_sutures]["curr_loss"], post_algorithm_losses[best_opt_num_sutures]["closure_loss"], post_algorithm_losses[best_opt_num_sutures]["shear_loss"], equally_spaced_losses[best_baseline_num_sutures]["curr_loss"], equally_spaced_losses[best_baseline_num_sutures]["closure_loss"], equally_spaced_losses[best_baseline_num_sutures]["shear_loss"]]
+    print(printable_list)
 
     # fig = plt.figure()
     # ax = plt.axes(projection='3d')
