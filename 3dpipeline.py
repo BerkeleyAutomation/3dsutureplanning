@@ -85,7 +85,7 @@ def project3d_to_2d(left_image, points):
 if __name__ == "__main__":
     box_method = True
     save_figs = True
-    chicken_number = 5
+    chicken_number = 2
 
     left_file = f'left_exp_00{chicken_number}.png'
     left_img_path = 'dan_chicken/' + left_file
@@ -289,8 +289,8 @@ if __name__ == "__main__":
             fig.colorbar(p)
             plt.show()
 
-            start_range = 4
-            end_range = 12
+            start_range = 10
+            end_range = 20
 
             print("range:", start_range, end_range)
 
@@ -536,7 +536,7 @@ if __name__ == "__main__":
         start_time = time.time()
                 
         viz = False
-        use_prev = False
+        use_prev = True
         suture_width = 0.005
 
         print("HELLO")
@@ -692,13 +692,13 @@ if __name__ == "__main__":
 
         curvature_arr = np.array(curvature_arr)
         scaled_curvature = curvature_arr / 100
-        L = (1/0.4) - (1/0.60)  # The range of the spacing values
+        L = (1/0.4) - (1/0.6)  # The range of the spacing values
         # more curve means 1/0.5 ellipse whereas less curve means greater
         k = 10  # The steepness of the curve
         x0 = 0.5  # The midpoint of the sigmoid
 
         # Calculate the spacing using the sigmoid function
-        spacing = (1/0.60) + sigmoid(scaled_curvature, L, k, x0)
+        spacing = (1/0.6) + sigmoid(scaled_curvature, L, k, x0)
         # print('SPACING', spacing)
         # get mesh from the surrounding points
 
@@ -847,8 +847,8 @@ if __name__ == "__main__":
         #     fig.colorbar(p)
         #     plt.show()
 
-        start_range = 4
-        end_range = 10
+        start_range = 6
+        end_range = 12
 
         # start_range = int(spline_length / 0.005)
         # end_range = int(spline_length / 0.003)
@@ -869,28 +869,42 @@ if __name__ == "__main__":
 
         final_closure = None
         final_shear = None
-
         for num_sutures in range(start_range, end_range + 1):
             print("Num sutures:", num_sutures)
 
             center_pts, insertion_pts, extraction_pts = optim3d.generate_inital_placement(mesh, left_spline, num_sutures=num_sutures)
             #print("Normal vector", normal_vectors)
-            # optim3d.plot_mesh_path_and_spline(mesh, left_spline, viz=True, results_pth=baseline_pth)
+            # optim3d.plot_mesh_path_and_spline()
             equally_spaced_losses[num_sutures] = optim3d.optimize(eval=True)
-            print('Initial loss', equally_spaced_losses[num_sutures]["curr_loss"])
+            print('baseline loss', equally_spaced_losses[num_sutures]["curr_loss"])
+
+            if equally_spaced_losses[num_sutures]['curr_loss'] < best_baseline_loss:
+                best_baseline_num_sutures = num_sutures
+                best_baseline_optim = copy.deepcopy(optim3d)
             optim3d.optimize(eval=False)
-        
+
             # optim3d.plot_mesh_path_and_spline(mesh, left_spline, viz=True, results_pth=baseline_pth)
             # optim3d.plot_mesh_path_and_spline(mesh, left_spline, viz=viz, results_pth=opt_pth)
 
             post_algorithm_losses[num_sutures] = optim3d.optimize(eval=True)
-            print('After loss', post_algorithm_losses[num_sutures]["curr_loss"])
+            print('opt loss', post_algorithm_losses[num_sutures]["curr_loss"])
 
-            
+            # optim3d.plot_mesh_path_and_spline()
+
+
             if post_algorithm_losses[num_sutures]["curr_loss"] < best_opt_loss:
                 # print("Num sutures", num_sutures, "best loss so far")
+                best_opt_num_sutures = num_sutures
                 best_opt_loss = post_algorithm_losses[num_sutures]["curr_loss"]
-                print("BEST LOSS", best_opt_loss)
+                best_baseline_loss = equally_spaced_losses[num_sutures]["curr_loss"]
+                # print("[opt] total loss", best_opt_loss)
+                # print("[opt] closure loss", post_algorithm_losses[num_sutures]["closure_loss"])
+                # print("[opt] shear loss", post_algorithm_losses[num_sutures]["shear_loss"])
+
+                # print("[baseline] total loss", best_baseline_loss)
+                # print("[baseline] closure loss", equally_spaced_losses[num_sutures]["closure_loss"])
+                # print("[baseline] shear loss", equally_spaced_losses[num_sutures]["shear_loss"])
+
                 best_opt_insertion = optim3d.insertion_pts
                 best_opt_extraction = optim3d.extraction_pts
                 best_opt_center = optim3d.center_pts
@@ -898,6 +912,21 @@ if __name__ == "__main__":
                 baseline_extraction = extraction_pts
                 baseline_center = center_pts
                 _, _, final_closure, _, _, _, _ = optim3d.compute_closure_shear_loss(granularity=100)
+                best_optim = copy.deepcopy(optim3d)
+
+        print("[opt] total loss", post_algorithm_losses[best_opt_num_sutures]["curr_loss"])
+        print("[opt] closure loss", post_algorithm_losses[best_opt_num_sutures]["closure_loss"])
+        print("[opt] shear loss", post_algorithm_losses[best_opt_num_sutures]["shear_loss"])
+
+        if equally_spaced_losses[best_baseline_num_sutures]["curr_loss"] == 1:
+            print("CONSTRAINTS NOT MET IN BASELINE!")
+        print("[baseline] total loss", equally_spaced_losses[best_baseline_num_sutures]["curr_loss"])
+        print("[baseline] closure loss", equally_spaced_losses[best_baseline_num_sutures]["closure_loss"])
+        print("[baseline] shear loss", equally_spaced_losses[best_baseline_num_sutures]["shear_loss"])
+
+        printable_list = [equally_spaced_losses[best_baseline_num_sutures]["closure_loss"], equally_spaced_losses[best_baseline_num_sutures]["shear_loss"], equally_spaced_losses[best_baseline_num_sutures]["curr_loss"], best_baseline_num_sutures, post_algorithm_losses[best_opt_num_sutures]["closure_loss"], post_algorithm_losses[best_opt_num_sutures]["shear_loss"], post_algorithm_losses[best_opt_num_sutures]["curr_loss"], best_opt_num_sutures]
+        print("DATA", printable_list)
+
 
         end_time = time.time()
         print(f"execution time: {end_time - start_time}")

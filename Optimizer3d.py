@@ -71,6 +71,7 @@ class Optimizer3d:
         # find out correct width on both sides
         # choose the closest points
         wound_width_vectors = [self.normalize_vector(np.cross(normal_vectors[i], derivative_vectors[i])) for i in range(granularity)]
+        wound_width_vectors2 = [self.normalize_vector(-np.cross(normal_vectors[i], derivative_vectors[i])) for i in range(granularity)]
         # print("WOUND WIDTH VECTORS", wound_width_vectors)
         self.wound_widths = []
         for i in range(granularity):
@@ -83,6 +84,18 @@ class Optimizer3d:
                     min_dist = dist
                     min_border_pt_idx = nearest_border_pt_idx
             self.wound_widths.append(np.linalg.norm(self.border_pts_3d[min_border_pt_idx] - center_points[i]))
+        
+        self.wound_widths2 = []
+        for i in range(granularity):
+            min_dist = 99999999
+            min_border_pt_idx = -1
+            for ray_length in np.arange(0, 0.02, 0.001):
+                end_ray_pt = center_points[i] + (ray_length) * wound_width_vectors2[i]
+                dist, nearest_border_pt_idx = self.border_kdtree.query(end_ray_pt, 1)
+                if dist < min_dist:
+                    min_dist = dist
+                    min_border_pt_idx = nearest_border_pt_idx
+            self.wound_widths2.append(np.linalg.norm(self.border_pts_3d[min_border_pt_idx] - center_points[i]))
 
         self.synthetic = synthetic
         if self.synthetic:
@@ -207,8 +220,8 @@ class Optimizer3d:
             wound_line_normal = wound_line_normal / np.linalg.norm(wound_line_normal)
 
             # per insertion is for that point, index i is the force at insertion point i
-            total_insertion_force, per_insertion, force_per_insertion = self.compute_total_force(insertion_pts, force_vecs, point)
-            total_extraction_force, per_extraction, force_per_extraction = self.compute_total_force(extraction_pts, -force_vecs, point)
+            total_insertion_force, per_insertion, force_per_insertion = self.compute_total_force(insertion_pts, force_vecs, point, insertion=True)
+            total_extraction_force, per_extraction, force_per_extraction = self.compute_total_force(extraction_pts, -force_vecs, point, insertion=False)
 
             insertion_closure_force = np.dot(total_insertion_force, wound_line_normal)
             extraction_closure_force = np.dot(total_extraction_force, wound_line_normal)
@@ -249,7 +262,7 @@ class Optimizer3d:
 
             return closure_force, shear_force, per_insertion, per_extraction, insertion_force, extraction_force
 
-    def compute_felt_force(self, in_ex_pt, in_ex_force_vec, point, i, num_nearest = 20):
+    def compute_felt_force(self, in_ex_pt, in_ex_force_vec, point, i, num_nearest = 20, insertion=True):
     
             # Original function had points_to_sample, ep as parameters
 
@@ -262,7 +275,10 @@ class Optimizer3d:
             # ellipse_ecc = self.force_model['ellipse_ecc']
             ellipse_ecc = self.spacing[int(self.points_t[i] * 99)]
             # force_decay = self.force_model['force_decay']
-            force_decay = 0.5 / (0.005 + self.wound_widths[int(self.points_t[i] * 99)])
+            if insertion:
+                force_decay = 0.5 / (0.005 + self.wound_widths[int(self.points_t[i] * 99)])
+            else:
+                force_decay = 0.5 / (0.005 + self.wound_widths2[int(self.points_t[i] * 99)])
             verbose = self.force_model['verbose']
 
             in_ex_plane = get_plane_estimation(mesh, in_ex_pt, num_nearest, trimesh=self.trimesh)
@@ -359,7 +375,7 @@ class Optimizer3d:
 
             return wound_force_vec
 
-    def compute_total_force(self, in_ex_pts, in_ex_force_vecs, point):
+    def compute_total_force(self, in_ex_pts, in_ex_force_vecs, point, insertion=True):
 
             #mesh = self.mesh
             #compute_felt_force(in_ex_pt, point, in_ex_force_vec, num_nearest = 20)
@@ -373,7 +389,7 @@ class Optimizer3d:
                 mag = 0
                 force = np.array([0, 0, 0])
                 if np.linalg.norm(in_ex_pt - point) <= 1/self.force_model['force_decay']:   #TODO: double check the distance
-                    felt_force = self.compute_felt_force(in_ex_pt, in_ex_force_vec, point, i)
+                    felt_force = self.compute_felt_force(in_ex_pt, in_ex_force_vec, point, i, insertion=insertion)
                     # self.plot_mesh_path_spline_and_forces(point, in_ex_pt, in_ex_force_vec)
                     if self.force_model['verbose'] > 10:
                         print('felt force: ', felt_force)
@@ -497,6 +513,7 @@ class Optimizer3d:
         # choose the closest points
         # print(points_t)
         wound_widths = [self.wound_widths[int(pt * 99)] for pt in points_t]
+        wound_widths2 = [self.wound_widths2[int(pt * 99)] for pt in points_t]
         # print(self.wound_widths)
         # print("WOUND WIDTHS", wound_widths)
         # Insertion points = cross product 
@@ -507,7 +524,7 @@ class Optimizer3d:
         # print("magnitude insertion points", [np.linalg.norm(insertion_points[i]) for i in range(num_points)])
 
         # Extraction points = - cross product
-        extraction_points = [mesh.get_point_location(mesh.get_nearest_point(center_points[i] + (0.005 + wound_widths[i]) * (-np.cross(normal_vectors[i], derivative_vectors[i])))[1]) for i in range(num_points)]
+        extraction_points = [mesh.get_point_location(mesh.get_nearest_point(center_points[i] + (0.005 + wound_widths2[i]) * (-np.cross(normal_vectors[i], derivative_vectors[i])))[1]) for i in range(num_points)]
 
         # update suture placement 3d object
         self.center_pts = center_points
