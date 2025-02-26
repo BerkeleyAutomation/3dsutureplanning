@@ -48,7 +48,7 @@ class VisualizePointcloudNode:
         z = center[2] + radius * (np.sin(phi) * np.cos(theta) * u[2] + np.sin(phi) * np.sin(theta) * v[2] + np.cos(phi) * normal[2])
         
         sphere_points = np.vstack((x.flatten(), y.flatten(), z.flatten())).T
-        return sphere_points
+        return sphere_points, np.array([x[-1, -1], y[-1, -1], z[-1, -1]])  # Return top of sphere as well
 
     def image_callback(self):
         self.left_img = cv2.imread(f'dan_chicken/left_exp_00{self.chicken_number}.png')
@@ -62,20 +62,26 @@ class VisualizePointcloudNode:
 
         self.server_.add_point_cloud('mesh', points=point_cloud_data, colors=rgb_cloud_data, point_size=0.001, point_shape='sparkle')
 
+        insertion_tops = []
+        extraction_tops = []
+
         for i, pt in enumerate(self.insertion):
             normal = self.estimate_normal(kdtree, point_cloud_data, pt)
-            circle_pts = self.draw_sphere(pt, normal)
-            insertion_points_color = np.zeros_like(circle_pts, dtype=np.uint8)
-            insertion_points_color[:, 1] = 255  # Red
-            self.server_.add_point_cloud(f'insertion_points{i}', points=circle_pts, colors=insertion_points_color, point_size=0.00009, point_shape='sparkle')
+            sphere_pts, top_pt = self.draw_sphere(pt, normal)
+            insertion_tops.append(top_pt)
+            insertion_points_color = [[146, 243, 135] for i in range(len(sphere_pts))] # green
+            self.server_.add_point_cloud(f'insertion_points{i}', points=sphere_pts, colors=insertion_points_color, point_size=0.00009, point_shape='sparkle')
 
         for i, pt in enumerate(self.extraction):
             normal = self.estimate_normal(kdtree, point_cloud_data, pt)
-            circle_pts = self.draw_sphere(pt, normal)
-            extraction_points_color = np.zeros_like(circle_pts, dtype=np.uint8)
-            extraction_points_color[:, 0] = 255  # Red
-            self.server_.add_point_cloud(f'extraction_points{i}', points=circle_pts, colors=extraction_points_color, point_size=0.00009, point_shape='sparkle')
+            sphere_pts, top_pt = self.draw_sphere(pt, normal)
+            extraction_tops.append(top_pt)
+            extraction_points_color = [[255, 71, 71] for i in range(len(sphere_pts))] # red
+            self.server_.add_point_cloud(f'extraction_points{i}', points=sphere_pts, colors=extraction_points_color, point_size=0.00009, point_shape='sparkle')
 
+        line_points = np.array([x for x in zip(insertion_tops, extraction_tops)])
+        line_color = np.array([[[0, 0, 0], [0, 0, 0]] for i in range(len(line_points))])
+        self.server_.add_line_segments("lines", points=line_points, colors=line_color, line_width=2)
         import pdb
         pdb.set_trace()
         exit()
