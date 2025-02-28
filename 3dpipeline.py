@@ -85,7 +85,7 @@ def project3d_to_2d(left_image, points):
 if __name__ == "__main__":
     box_method = True
     save_figs = True
-    chicken_number = 1
+    chicken_number = 2
 
     left_file = f'left_exp_00{chicken_number}.png'
     left_img_path = 'dan_chicken/' + left_file
@@ -645,7 +645,7 @@ if __name__ == "__main__":
         # left_spline = line_to_spline(left_line, None, None, viz=False)
         # will actually need to use line_to_spline_3d (expect 3d points)
         left_spline = line_to_spline_3d(line_pts_3d, sample_ratio=30, viz=False, s_factor=0)
-        left_spline_smoothed = line_to_spline_3d(line_pts_3d, sample_ratio=30, viz=False, s_factor=0.0001)
+        left_spline_smoothed = line_to_spline_3d(line_pts_3d, sample_ratio=30, viz=False, s_factor=0.00005)
         granularity = 100
 
         x_pts = [left_spline[0](t/granularity) for t in range(granularity)]
@@ -847,8 +847,8 @@ if __name__ == "__main__":
         #     fig.colorbar(p)
         #     plt.show()
 
-        start_range = 6
-        end_range = 8
+        start_range = 5
+        end_range = 9
 
         # start_range = int(spline_length / 0.005)
         # end_range = int(spline_length / 0.003)
