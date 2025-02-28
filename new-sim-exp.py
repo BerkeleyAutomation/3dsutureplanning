@@ -44,12 +44,12 @@ if __name__ == "__main__":
         # for 5 and 6
         # return np.sqrt(0.0005 - x**2)
         # return -30*(x-0.01)**2+0.03
-        # return 0.02*np.cos(80*x)-0.4*x
-        return 0.04 + 0.01*x
+        return 0.02*np.cos(80*x)-0.4*x
+        # return 0.04 + 0.01*x
     
     def width_function(t):
         # for wounds 1-6 except
-        # return 0.003*(0.5+0.5*np.sin(1*np.pi * t -np.pi/2))+0.001
+        return 0.003*(0.5+0.5*np.sin(2*np.pi * t) + 0.3*np.cos(10*np.pi * t) + 0.2*np.sin(2*np.pi*t + np.pi))+0.001
         # for wounds 2, 3
         return 0.003*(t-t**2)+0.0005
     
@@ -177,10 +177,10 @@ if __name__ == "__main__":
     ax = fig.add_subplot(111, projection='3d')
 
     # Plot original surface
-    ax.scatter(x_grid.flatten(), y_grid.flatten(), z_grid.flatten(), c=z_grid.flatten(), cmap='viridis', marker='o', alpha=0.1)
+    # ax.scatter(x_grid.flatten(), y_grid.flatten(), z_grid.flatten(), c=z_grid.flatten(), cmap='viridis', marker='o', alpha=0.1)
 
     # Plot center spline
-    # ax.plot(x_spline, y_spline, z_spline, color='r', label="Center Spline", marker='o')
+    ax.plot(spline_pts[:, 0], spline_pts[:, 1], spline_pts[:, 2], color='w', label="Center Spline")
 
     # Plot width-adjusted splines
     # ax.plot(left_x, left_y, left_z, color='r', label="Left Boundary", marker='o')
@@ -208,8 +208,8 @@ if __name__ == "__main__":
             ax.quiver(even_spline_pts[t][0], even_spline_pts[t][1], even_spline_pts[t][2], even_spline_vecs[t][0], even_spline_vecs[t][1], even_spline_vecs[t][2], length=0.05, normalize=True)
     
     ax.set_aspect('equal')
-
     ax.grid(False)
+    ax.set_axis_off()
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     ax.set_zticklabels([])
