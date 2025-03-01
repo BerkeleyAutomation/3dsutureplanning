@@ -179,15 +179,16 @@ if __name__ == "__main__":
     # Plot original surface
     # ax.scatter(x_grid.flatten(), y_grid.flatten(), z_grid.flatten(), c=z_grid.flatten(), cmap='viridis', marker='o', alpha=0.1)
 
-    # Plot center spline
-    ax.plot(spline_pts[:, 0], spline_pts[:, 1], spline_pts[:, 2], color='w', label="Center Spline")
-
     # Plot width-adjusted splines
     # ax.plot(left_x, left_y, left_z, color='r', label="Left Boundary", marker='o')
     # ax.plot(right_x, right_y, right_z, color='g', label="Right Boundary", marker='o')
 
     # Fill in the surface
     ax.add_collection3d(Poly3DCollection(faces, alpha=0.6, facecolor='red', edgecolor='none'))
+
+        # Plot center spline
+    # ax.plot(spline_pts[:, 0], spline_pts[:, 1], spline_pts[:, 2], color='w', label="Center Spline", marker='o', linestyle='dashed',
+    #  linewidth=2, markersize=0)
 
 
     border_pts_3d = np.vstack((
@@ -196,7 +197,7 @@ if __name__ == "__main__":
     ))
 
     # define t based on cumulative dists
-    # ax.plot(even_spline_pts[:, 0], even_spline_pts[:, 1], even_spline_pts[:, 2], color='b', label="Center Spline", marker='o')
+    ax.plot(even_spline_pts[:, 0][1:-1], even_spline_pts[:, 1][1:-1], even_spline_pts[:, 2][1:-1], color='black', label="Center Spline", marker='o', linewidth=3, markersize=0)
 
     extra_vecs = False
     if extra_vecs:
