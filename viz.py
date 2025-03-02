@@ -9,7 +9,7 @@ DEVICE = 'cuda'
 class VisualizePointcloudNode:
 
     def __init__(self):
-        self.chicken_number = 3
+        self.chicken_number = 8
         self.server_ = viser.ViserServer()
 
         self.image_callback()
@@ -81,7 +81,7 @@ class VisualizePointcloudNode:
 
         line_points = np.array([x for x in zip(insertion_tops, extraction_tops)])
         line_color = np.array([[[0, 0, 0], [0, 0, 0]] for i in range(len(line_points))])
-        self.server_.add_line_segments("lines", points=line_points, colors=line_color, line_width=2)
+        # self.server_.add_line_segments("lines", points=line_points, colors=line_color, line_width=2)
         import pdb
         pdb.set_trace()
         exit()
