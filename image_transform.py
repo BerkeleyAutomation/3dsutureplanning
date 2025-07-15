@@ -41,7 +41,7 @@ def get_dilated_mask(img_path, dilation):
 
     fore_back = [1 for _ in range(num_left)] + [0 for _ in range(num_right)]
 
-    mask, img = create_mask(img_path, np.array(left_coords + right_coords), np.array(fore_back), 'base')
+    mask, img = create_mask(img_path)
 
     cv2.imwrite('original_mask.jpg', mask)
 

@@ -65,6 +65,19 @@ class ScaleGenerator:
 
         # TODO actually do the thing
 
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        # Add a semi-transparent background for better readability
+        overlay = img_color.copy()
+        cv2.rectangle(overlay, (5, 5), (600, 150), (0, 0, 0), -1)
+        cv2.addWeighted(overlay, 0.7, img_color, 0.3, 0, img_color)
+        
+        # Add instructions
+        cv2.putText(img_color, "Instructions:", (10, 30), font, 0.7, (255, 255, 255), 2)
+        cv2.putText(img_color, "Click two points the width of a suture (center to insertion)", (10, 60), font, 0.6, (255, 255, 255), 1)
+        cv2.putText(img_color, "Press any key when finished", (10, 90), font, 0.6, (255, 255, 255), 1)
+
+        
+
         self.img_color = img_color
         self.img_point = img_point
         np.save("./record/img_color_inclined.npy", self.img_color)

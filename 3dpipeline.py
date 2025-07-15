@@ -20,6 +20,7 @@ from SuturePlacement3d import SuturePlacement3d
 import json
 import os
 import copy
+from progress_tracker import ProgressTracker, run_mesh_generation_with_progress, update_optimization_progress, show_progress_window
 
 def calculate_z(mesh, point, smallest_z, largest_z):
     z_arr = np.linspace(smallest_z, largest_z, num=10000)
@@ -85,7 +86,7 @@ def project3d_to_2d(left_image, points):
 if __name__ == "__main__":
     box_method = True
     save_figs = True
-    chicken_number = 8
+    chicken_number = 7
 
     left_file = f'left_exp_00{chicken_number}.png'
     left_img_path = 'dan_chicken/' + left_file
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     if not os.path.isdir("masks/"):
         os.mkdir("masks/")
 
-    mode = '3d' # 3d
+    mode = '2d' # 3d
 
     if experiment_mode == "synthetic":
         adj_path = 'synth_adjacency.txt'
@@ -209,14 +210,6 @@ if __name__ == "__main__":
         print("MIN", np.min(curvature_arr))
         print("MAX", np.max(curvature_arr))
 
-        fig = plt.figure()
-        ax = plt.axes(projection='3d')
-        plt.title("Spline curvature")
-        print("max curve", max(curvature_arr))
-        p = ax.scatter3D(x_pts, y_pts, z_pts, c=curvature_arr)
-        fig.colorbar(p)
-        plt.show()
-
         def sigmoid(x, L, k, x0):
             """
             Sigmoid function with parameters to control its shape.
@@ -238,12 +231,6 @@ if __name__ == "__main__":
         print('SPACING', spacing)
         # get mesh from the surrounding points
 
-        fig = plt.figure()
-        ax = plt.axes(projection='3d')
-        plt.title("Sigmoid eccentricity")
-        p = ax.scatter3D(x_pts, y_pts, z_pts, c=spacing)
-        fig.colorbar(p)
-        plt.show()
         suture_width = 0.15
         mm_per_pixel = 10
         c_ideal = 1000
@@ -385,6 +372,12 @@ if __name__ == "__main__":
 
             
     if mode == '2d' and experiment_mode == "physical":
+        # Initialize progress tracker for 2D mode
+        # progress_tracker = ProgressTracker()
+        
+        # Show initial progress window
+        # show_progress_window(progress_tracker, "2D Suture Planning Progress")
+        
         adj_path = 'adjacency_matrix.txt'
         loc_path = 'vertex_lookup.txt'
         disp_path = "RAFT/disparity_009.npy"
@@ -421,17 +414,25 @@ if __name__ == "__main__":
         # PIL images into NumPy arrays
         numpydata = np.asarray(img)
 
+        fig = plt.figure()
+        # plot the image
+        # plt.imshow(numpydata)
+
         # get scaling information
         mm_indicated = 10
         wound_width = 5
-        left_pts, right_pts = click_points_simple(numpydata)
+        left_pts, right_pts = click_points_simple(fig)
 
         if len(left_pts) < 2:
             print("not enough points clicked")
         
         mm_per_pixel = get_mm_per_pixel(left_pts[-2], left_pts[-1], mm_indicated)
         
-        line, mask = img_to_line(left_img_path, box_method, viz=True, save_figs=save_figs)
+        # Use progress tracker for mask drawing
+        line, mask = img_to_line(left_img_path, box_method, viz=True, save_figs=save_figs, progress_tracker=progress_tracker)
+        
+        # Update progress window with chicken image and mask
+        # show_progress_window(progress_tracker, "2D Suture Planning Progress")
         
         # build a line that is scaled to mm size
         scaled_line = []
@@ -527,19 +528,22 @@ if __name__ == "__main__":
         print("loss of 2d placement", str(loss2d))
         optim3d.plot_mesh_path_and_spline(mesh, center_pts_spline, suturePlacement2dIn3d, [], [], viz=False, results_pth=old_algo_pth)
 
-        
-
-        # suture_display_adj_pipeline(newSuturePlacer)
+        # Close progress window
+        cv2.destroyAllWindows()
 
     elif mode == '3d' and experiment_mode == "physical":
         # COMMAND F
         start_time = time.time()
+        
+        # Initialize progress tracker
+        progress_tracker = ProgressTracker()
+        
+        # Show initial progress window
+        show_progress_window(progress_tracker, "Suture Planning Progress")
                 
         viz = False
-        use_prev = True
+        use_prev = False
         suture_width = 0.005
-
-        print("HELLO")
         
         # get the masks
         # save left and right masks
@@ -555,14 +559,20 @@ if __name__ == "__main__":
             left_line = np.load(left_line_path)
             left_mask = np.load(left_mask_path)
             border_pts = np.load(border_pts_path)
+            # Update progress for mask loading
+            progress_tracker.update_stage_progress("mask_drawing", 1.0)
+            # Set the chicken image for the progress window
+            progress_tracker.set_chicken_image(left_img_path, left_mask)
 
         else:
             # Right click is not on wound
-            print("NOW HERE")
-            left_line, left_mask, border_pts = img_to_line(left_img_path, box_method=False, save_figs=save_figs)
+            left_line, left_mask, border_pts = img_to_line(left_img_path, box_method=False, save_figs=save_figs, progress_tracker=progress_tracker)
             np.save(left_mask_path, left_mask)
             np.save(left_line_path, left_line)
             np.save(border_pts_path, border_pts)
+        
+        # Update progress window with chicken image and mask
+        show_progress_window(progress_tracker, "Suture Planning Progress")
         
         # do raft, no need to do rn, as we are using the existing RAFT output
         disp_path = f"dan_depth/depth_image_00{chicken_number}.npy"
@@ -717,8 +727,15 @@ if __name__ == "__main__":
             for point in surrounding_pts:
                 f.write(f"{point[0]} {point[1]} {point[2]}\n")
 
-        
-        subprocess.run(["./generate_mesh"])
+        # Run mesh generation with progress tracking
+        mesh_success = run_mesh_generation_with_progress(progress_tracker)
+        if not mesh_success:
+            print("Mesh generation failed!")
+            cv2.destroyAllWindows()
+            exit(1)
+
+        # Update progress window after mesh generation
+        show_progress_window(progress_tracker, "Suture Planning Progress")
 
         # get the saved mesh data
         adj_path = 'adjacency_matrix.txt'
@@ -869,6 +886,10 @@ if __name__ == "__main__":
 
         final_closure = None
         final_shear = None
+        
+        total_optimization_iterations = (end_range - start_range + 1) * 2  # baseline + optimized for each suture count
+        current_iteration = 0
+        
         for num_sutures in range(start_range, end_range + 1):
             print("Num sutures:", num_sutures)
 
@@ -877,6 +898,10 @@ if __name__ == "__main__":
             # optim3d.plot_mesh_path_and_spline()
             equally_spaced_losses[num_sutures] = optim3d.optimize(eval=True)
             print('baseline loss', equally_spaced_losses[num_sutures]["curr_loss"])
+            
+            current_iteration += 1
+            update_optimization_progress(progress_tracker, current_iteration, total_optimization_iterations)
+            show_progress_window(progress_tracker, "Suture Planning Progress")
 
             if equally_spaced_losses[num_sutures]['curr_loss'] < best_baseline_loss:
                 best_baseline_num_sutures = num_sutures
@@ -888,6 +913,10 @@ if __name__ == "__main__":
 
             post_algorithm_losses[num_sutures] = optim3d.optimize(eval=True)
             print('opt loss', post_algorithm_losses[num_sutures]["curr_loss"])
+            
+            current_iteration += 1
+            update_optimization_progress(progress_tracker, current_iteration, total_optimization_iterations)
+            show_progress_window(progress_tracker, "Suture Planning Progress")
 
             # optim3d.plot_mesh_path_and_spline()
 
@@ -913,6 +942,10 @@ if __name__ == "__main__":
                 baseline_center = center_pts
                 _, _, final_closure, _, _, _, _ = optim3d.compute_closure_shear_loss(granularity=100)
                 best_optim = copy.deepcopy(optim3d)
+
+        # Mark optimization as complete
+        progress_tracker.update_stage_progress("optimization", 1.0)
+        show_progress_window(progress_tracker, "Suture Planning Progress")
 
         print("[opt] total loss", post_algorithm_losses[best_opt_num_sutures]["curr_loss"])
         print("[opt] closure loss", post_algorithm_losses[best_opt_num_sutures]["closure_loss"])
@@ -988,6 +1021,9 @@ if __name__ == "__main__":
 
         suture_display_adjust_optim = SutureDisplayAdjust(insertion_pts, center_pts, extraction_pts, left_image, center_spline)
         suture_display_adjust_optim.user_display_pnts(f"opt{chicken_number}")
+        
+        # Close progress window
+        cv2.destroyAllWindows()
 
 
 

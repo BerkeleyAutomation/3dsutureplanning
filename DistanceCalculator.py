@@ -152,7 +152,7 @@ class DistanceCalculator():
             return 1
     
 
-    def plot(self, wound_point_t, title_plot, plot_type, save_fig=False, save_dir=False):
+    def plot(self, wound_point_t, title_plot, plot_type, save_fig=False, save_dir="plots"):
         plt.clf()
 
         # 
@@ -225,7 +225,7 @@ class DistanceCalculator():
         plt.axis('square')
         plt.title(title_plot)
         if save_fig:
-            plt.savefig(save_dir + '/' + plot_type + '/' + save_fig)
+            plt.savefig("plots" + '/' + plot_type)
         else:
             plt.show()
 

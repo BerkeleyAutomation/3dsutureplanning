@@ -34,31 +34,31 @@ class EdgeDetector:
         pass
 
 
-def img_to_line(img_path, box_method, viz=False, save_figs=False):
+def img_to_line(img_path, box_method=False, viz=False, save_figs=False, progress_tracker=None):
 
     if not os.path.isdir("temp_images"):
         os.mkdir('temp_images')
     
     # load the image and convert into
     # numpy array
-    img = Image.open(img_path)
+    # img = Image.open(img_path)
     
-    # asarray() class is used to convert
-    # PIL images into NumPy arrays
-    numpydata = np.asarray(img)
+    # # asarray() class is used to convert
+    # # PIL images into NumPy arrays
+    # numpydata = np.asarray(img)
     
-    fig = plt.figure()
-    plt.imshow(numpydata)
+    # fig = plt.figure()
+    # plt.imshow(numpydata)
     
-    left_coords, right_coords = click_points_simple(fig)
+    # left_coords, right_coords = click_points_simple(fig)
     
-    print(left_coords)
-    print(right_coords)
+    # print(left_coords)
+    # print(right_coords)
 
-    num_left = len(left_coords)
-    num_right = len(right_coords)
+    # num_left = len(left_coords)
+    # num_right = len(right_coords)
 
-    fore_back = [1 for _ in range(num_left)] + [0 for _ in range(num_right)]
+    # fore_back = [1 for _ in range(num_left)] + [0 for _ in range(num_right)]
 
     def show_mask(mask, random_color=False):
         if random_color:
@@ -69,10 +69,20 @@ def img_to_line(img_path, box_method, viz=False, save_figs=False):
         mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
         plt.imshow(mask_image)
     
-    original_mask, img, display_mask = create_mask(img_path, np.array(left_coords + right_coords), np.array(fore_back), fig)
+    # Create mask with progress tracking
+    original_mask, img, display_mask = create_mask(img_path, progress_tracker)
     cv2.imwrite('temp_images/sam_mask.jpg', original_mask)
+    
+    # Update progress for mask processing
+    if progress_tracker:
+        progress_tracker.update_stage_progress("mask_drawing", 0.8)
+    
     mask = keep_largest_connected_component('temp_images/sam_mask.jpg')
     cv2.imwrite('temp_images/sam_mask.jpg', mask)
+    
+    # Update progress for mask completion
+    if progress_tracker:
+        progress_tracker.update_stage_progress("mask_drawing", 1.0)
     
     ## VARIABLE WOUND WIDTH STUFF
     # TRY GETTING BORDER OF MASK
@@ -117,11 +127,10 @@ def img_to_line(img_path, box_method, viz=False, save_figs=False):
     img = Image.open(img_path)
     left_img = np.asarray(img)
     plt.imshow(left_img)
-    show_mask(display_mask)
-    plt.show()
+    # show_mask(display_mask)
+    # plt.show()
     # print(len(contours))
     
-    # RIA'S FUNCTION:
     def fill_gaps(contour):
         def linear_int_x(x1, y1, x2, y2, y):
             return x1 + (y - y1) *  (x2 - x1) / (y2 - y1)
@@ -151,11 +160,14 @@ def img_to_line(img_path, box_method, viz=False, save_figs=False):
     # plt.scatter([pt[0] for pt in border_pts_gaps_filled], [pt[1] for pt in border_pts_gaps_filled], color='blue', s=1)
     #plt.plot([pt[0] for pt in border_pts_gaps_filled], [pt[1] for pt in border_pts_gaps_filled], 'b')
 
-    # plt.plot([pt[1] for pt in ordered_points], [pt[0] for pt in ordered_points], 'w')
+    plt.plot([pt[1] for pt in ordered_points], [pt[0] for pt in ordered_points], 'w')
     # plt.plot([border_pts[0,0], border_pts[-1,0]], [border_pts[0,1], border_pts[-1,1]], 'r')
-    # plt.show()
+    plt.show()
     
     # print(fill_gaps(border_pts))
+
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
     
     return ordered_points, numpydata, border_pts_gaps_filled
 

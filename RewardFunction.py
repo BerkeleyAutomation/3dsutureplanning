@@ -38,13 +38,13 @@ class RewardFunction():
         mean_insert = sum(self.insert_dists) / len(self.insert_dists)
         var_insert = sum([(i - mean_insert)**2 for i in self.insert_dists])
         
-        mean_center = sum(self.center_dists) / len(self.center_dists)
-        var_center = sum([(i - mean_center)**2 for i in self.center_dists])
+        # mean_center = sum(self.center_dists) / len(self.center_dists)
+        # var_center = sum([(i - mean_center)**2 for i in self.center_dists])
         
         mean_extract = sum(self.extract_dists) / len(self.extract_dists)
         var_extract = sum([(i - mean_extract)**2 for i in self.extract_dists])
 
-        return var_insert * c_lossVarInsExt + var_center * c_lossVarCenter + var_extract * c_lossVarInsExt
+        return var_insert * c_lossVarInsExt + var_extract * c_lossVarInsExt
 
 
     def lossIdeal(self):
@@ -168,7 +168,7 @@ class RewardFunction():
 
             # Ellipse Axes: Found by Tuning so that the reward function is as constant
             # as possible for consecutive sutures on a line.
-            a = 0.77 # Minor axis
+            a = 0.5 # Minor axis
             b = 1 # Major axis
             closure_r = 1 # Probably always 1, but can experiment with higher values
             shear_r = 1.3

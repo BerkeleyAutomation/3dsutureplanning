@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from datetime import datetime
 import os
+from progress_gui import get_progress_gui
 
 
 class SuturePlacer:
@@ -59,14 +60,14 @@ class SuturePlacer:
 
         result = optim.minimize(final_loss, wound_points, constraints = self.Constraints.constraints(), options={"maxiter":200}, method = 'SLSQP', tol = 1e-2, jac = jac)
         plt.clf()
-        save_intermittent_plots = False
+        save_intermittent_plots = True
         if save_intermittent_plots:
-            self.DistanceCalculator.plot(result.x, "closure plot", plot_closure=True, save_fig='s1/' + str(len(wound_points)) + '_closure_' + str(random.randint(0, 1000000)))
-            self.DistanceCalculator.plot(result.x, "shear plot", plot_shear=True, save_fig='s1/' + str(len(wound_points)) + '_shear_' + str(random.randint(0, 1000000)))
+            self.DistanceCalculator.plot(result.x, "closure", plot_type='closure', save_fig='s1/' + str(len(wound_points)) + '_closure_' + str(random.randint(0, 1000000)))
+            self.DistanceCalculator.plot(result.x, "shear", plot_type='shear', save_fig='s1/' + str(len(wound_points)) + '_shear_' + str(random.randint(0, 1000000)))
 
         return insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts, result.x
     
-    def place_sutures(self, sample_spline=None, save_figs=False):
+    def place_sutures(self, sample_spline=None, save_figs=True):
 
         # make a folder to store info
 
@@ -82,14 +83,32 @@ class SuturePlacer:
             os.mkdir('clicking/' + dt_string + '/closure')
             os.mkdir('clicking/' + dt_string + '/shear')
 
+        # Get progress GUI if available
+        progress_gui = get_progress_gui()
 
         num_sutures_initial = int(self.DistanceCalculator.initial_number_of_sutures(0, 1)) # heuristic
         print("NUM SUTURES INITIAL", num_sutures_initial)
+        
+        # Set up suture range for progress tracking
+        start_range = max(2, int(num_sutures_initial))
+        end_range = int(2.2 * num_sutures_initial)
+        if progress_gui:
+            progress_gui.set_suture_range(start_range, end_range)
+            progress_gui.set_status("Starting suture placement optimization...")
+            # Set up visualization
+            progress_gui.set_distance_calculator(self.DistanceCalculator)
+        
         d = {}
         losses = {}
         points_dict = {}
-        for num_sutures in range(max(2, int(0.8 * num_sutures_initial)), int(2 * num_sutures_initial)): # This should be (0.8 * heuristic to 1.4 * heuristic)
+        for num_sutures in range(start_range, end_range): # This should be (0.8 * heuristic to 1.4 * heuristic)
             print('NUM SUTURES: ', num_sutures)
+            
+            # Update progress GUI
+            if progress_gui:
+                progress_gui.update_current_sutures(num_sutures)
+                progress_gui.set_status(f"Optimizing placement for {num_sutures} sutures...")
+            
             d[num_sutures] = {}
             heuristic = num_sutures
             best_loss = float('inf')
@@ -99,18 +118,34 @@ class SuturePlacer:
             self.RewardFunction.center_dists = center_dists
             self.RewardFunction.extract_dists = extract_dists
             best_loss = self.RewardFunction.hyperLoss()
+            
+            # Get individual loss components
+            closure_loss = self.RewardFunction.lossClosureForce(1, 0)
+            shear_loss = self.RewardFunction.lossClosureForce(0, 1)
+            center_var_loss = self.RewardFunction.lossVar(1, 0)
+            ins_ext_var_loss = self.RewardFunction.lossVar(0, 1)
+            ideal_loss = self.RewardFunction.lossIdeal()
+            
             print('loss: ', best_loss)
-            print('closure loss', self.RewardFunction.lossClosureForce(1, 0))
-            print('shear loss', self.RewardFunction.lossClosureForce(0, 1))
-            print('center var loss', self.RewardFunction.lossVar(1, 0))
-            print('InsExt var loss', self.RewardFunction.lossVar(0, 1))
-            print('ideal loss', self.RewardFunction.lossIdeal())
+            print('closure loss', closure_loss)
+            print('shear loss', shear_loss)
+            print('center var loss', center_var_loss)
+            print('InsExt var loss', ins_ext_var_loss)
+            print('ideal loss', ideal_loss)
+            
+            # Update progress GUI with loss information
+            if progress_gui:
+                progress_gui.update_losses(best_loss, closure_loss, shear_loss, 
+                                         center_var_loss, ins_ext_var_loss, ideal_loss)
+                # Update visualization with current suture plan
+                progress_gui.update_visualization(ts, f"Optimized {num_sutures} Sutures")
+            
             d[num_sutures]['loss'] = best_loss
-            d[num_sutures]['closure loss'] = self.RewardFunction.lossClosureForce(1, 0)
-            d[num_sutures]['shear loss'] = self.RewardFunction.lossClosureForce(0, 1)
-            d[num_sutures]['var loss - center'] = self.RewardFunction.lossVar(1, 0)
-            d[num_sutures]['var loss - ins/ext'] = self.RewardFunction.lossVar(0, 1)
-            d[num_sutures]['ideal loss'] = self.RewardFunction.lossIdeal()
+            d[num_sutures]['closure loss'] = closure_loss
+            d[num_sutures]['shear loss'] = shear_loss
+            d[num_sutures]['var loss - center'] = center_var_loss
+            d[num_sutures]['var loss - ins/ext'] = ins_ext_var_loss
+            d[num_sutures]['ideal loss'] = ideal_loss
             b_insert_pts, b_center_pts, b_extract_pts, b_ts = insert_pts, center_pts, extract_pts, ts
             losses[best_loss] = num_sutures
      
@@ -134,6 +169,11 @@ class SuturePlacer:
 
             points_dict[num_sutures] = b_ts
 
+        # Mark optimization as complete
+        if progress_gui:
+            progress_gui.mark_complete()
+            progress_gui.set_status("Optimization complete! Saving results...")
+
         dict_to_csv(d, "clicked_losses")
         save_dict_to_file(points_dict, "clicked_points.txt")
         return b_insert_pts, b_center_pts, b_extract_pts
@@ -150,12 +190,12 @@ def load_dict_from_file():
     return eval(data)
 
 def dict_to_csv(d, filename):
-    df = pd.DataFrame(columns = ['num_sutures', 'loss', 'closure loss', 'shear loss', 'var loss'])
-    d2 = {}
-    for k,v in d.items():
-        d2["num_sutures"] = k
-        d2 = {**d2, **v}
-        df = df.append(d2,
-            ignore_index = True)
+    rows = []
+    for k, v in d.items():
+        row = {"num_sutures": k}
+        row.update(v)
+        rows.append(row)
+    
+    df = pd.DataFrame(rows, columns=['num_sutures', 'loss', 'closure loss', 'shear loss', 'var loss'])
     df = df.sort_values(by=['loss'])
-    df.to_csv(filename + ".csv", index=False) 
+    df.to_csv(filename + ".csv", index=False)

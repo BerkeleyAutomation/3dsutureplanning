@@ -37,14 +37,14 @@ class SutureDisplayAdjust:
         blue, red, green, black = (255, 0, 0), (71, 71, 255), (135, 243, 146), (81, 76, 72)
         wound = (139, 135, 255)
         img_draw = self.left_image.copy()
-        # for i in range(len(self.center_spline)-1):
-        #     cv2.line(img_draw, self.center_spline[i], self.center_spline[i+1], wound, 5)
+        for i in range(len(self.center_spline)-1):
+            cv2.line(img_draw, self.center_spline[i], self.center_spline[i+1], blue, 3)
         for data in zip(self.insertion_pts_pxl[::-1], self.extraction_pts_pxl[::-1]):
             cv2.line(img_draw, data[0], data[1], black, 2)
         for i, txt in enumerate(self.insertion_pts_pxl[::-1]):
             cv2.circle(img_draw, (self.insertion_pts_pxl[i][0], self.insertion_pts_pxl[i][1]), 5, green, -1)
         # for i, txt in enumerate(self.center_pts_pxl[::-1]):
-        #     cv2.circle(img_draw, (self.center_pts_pxl[i][0], self.center_pts_pxl[i][1]), 5, green, -1)
+        #     cv2.circle(img_draw, (self.center_pts_pxl[i][0], self.center_pts_pxl[i][1]), 5, blue, -1)
         for i, txt in enumerate(self.extraction_pts_pxl[::-1]):
             cv2.circle(img_draw, (self.extraction_pts_pxl[i][0], self.extraction_pts_pxl[i][1]), 5, red, -1)
 
