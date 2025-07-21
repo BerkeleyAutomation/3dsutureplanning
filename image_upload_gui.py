@@ -9,6 +9,33 @@ from tkinter import filedialog, messagebox
 from tkinter import ttk
 import os
 
+def set_dpi_awareness_and_font(root):
+    import sys
+    if sys.platform == "win32":
+        try:
+            from ctypes import windll
+            windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            pass
+    elif sys.platform == "darwin":
+        os.environ['TK_SILENCE_DEPRECATION'] = '1'
+    try:
+        from tkinter import font
+        default_font = font.nametofont("TkDefaultFont")
+        default_font.configure(family="Arial", size=12)
+        root.option_add("*Font", default_font)
+    except Exception:
+        pass
+
+def center_window(window, width=500, height=300):
+    window.update_idletasks()
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
+    window.minsize(width, height)
+
 class ImageUploadGUI:
     """Modern Minimal Image Upload GUI"""
     
@@ -39,16 +66,10 @@ class ImageUploadGUI:
             self.root.grab_set()  # Make it modal
         else:
             self.root = tk.Tk()
-        
+        set_dpi_awareness_and_font(self.root)
         self.root.title(self.title)
-        self.root.geometry("500x300")
+        center_window(self.root, width=500, height=300)
         self.root.resizable(False, False)
-        
-        # Center the window
-        self.root.update_idletasks()
-        x = (self.root.winfo_screenwidth() // 2) - (500 // 2)
-        y = (self.root.winfo_screenheight() // 2) - (300 // 2)
-        self.root.geometry(f"500x300+{x}+{y}")
         
         # Configure style - Modern minimal (consistent with progress GUI)
         style = ttk.Style()

@@ -7,6 +7,7 @@ Clean, spacious design with subtle colors and excellent readability
 import threading
 import time
 from typing import Optional, Callable
+import os
 
 # Try to import tkinter, but provide fallback if not available
 try:
@@ -26,6 +27,33 @@ try:
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
     print("Warning: matplotlib not available. Visualization will be disabled.")
+
+def set_dpi_awareness_and_font(root):
+    import sys
+    if sys.platform == "win32":
+        try:
+            from ctypes import windll
+            windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            pass
+    elif sys.platform == "darwin":
+        os.environ['TK_SILENCE_DEPRECATION'] = '1'
+    try:
+        from tkinter import font
+        default_font = font.nametofont("TkDefaultFont")
+        default_font.configure(family="Arial", size=12)
+        root.option_add("*Font", default_font)
+    except Exception:
+        pass
+
+def center_window(window, width=1200, height=500):
+    window.update_idletasks()
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
+    window.minsize(width, height)
 
 class SutureProgressGUI:
     """Modern Minimal Progress GUI for Suture Planning"""
@@ -57,16 +85,10 @@ class SutureProgressGUI:
             self.root.grab_set()  # Make it modal
         else:
             self.root = tk.Tk()
-        
+        set_dpi_awareness_and_font(self.root)
         self.root.title(self.title)
-        self.root.geometry("1200x500")
+        center_window(self.root, width=1200, height=500)
         self.root.resizable(False, False)
-        
-        # Center the window
-        self.root.update_idletasks()
-        x = (self.root.winfo_screenwidth() // 2) - (1200 // 2)
-        y = (self.root.winfo_screenheight() // 2) - (500 // 2)
-        self.root.geometry(f"1200x500+{x}+{y}")
         
         # Configure style - Modern minimal
         style = ttk.Style()

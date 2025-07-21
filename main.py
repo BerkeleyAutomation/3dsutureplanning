@@ -16,8 +16,27 @@ import time
 import threading
 from progress_gui import start_progress_gui, stop_progress_gui
 from image_upload_gui import upload_image_gui
+import os
 
 NUM_EXAMPLES = 5
+
+def set_dpi_awareness_and_font(root):
+    import sys
+    if sys.platform == "win32":
+        try:
+            from ctypes import windll
+            windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            pass
+    elif sys.platform == "darwin":
+        os.environ['TK_SILENCE_DEPRECATION'] = '1'
+    try:
+        from tkinter import font
+        default_font = font.nametofont("TkDefaultFont")
+        default_font.configure(family="Arial", size=12)
+        root.option_add("*Font", default_font)
+    except Exception:
+        pass
 
 def suture_placing_pipeline(sample_spline=None, image=None):
     try:
@@ -140,6 +159,7 @@ def main():
     
     # Initialize tkinter root
     ROOT = tk.Tk()
+    set_dpi_awareness_and_font(ROOT)
     ROOT.withdraw()  # Hide the main window
 
     if len(args) == 1:
