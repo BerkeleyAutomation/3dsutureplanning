@@ -2,22 +2,11 @@
 
 Current running instructions:
 ```
-python 3dpipeline.py
+python main.py
 ```
 
 ## Setup Instructions
 1. Clone repo
-2. Create & activate new conda environment
-3. Run the following commands
-    - pip install Pillow
-    - pip install opencv-python
-    - pip install scikit-image
-    - pip install matplotlib
-    - pip install torch
-    - pip install hydra-core
-    - pip install tqdm
-    - pip install torchvision
-    - pip install tensorflow
-    - pip install pandas
-    - pip install trimesh
-    - pip install iopath
+2. Run ```conda env create -f environment.yml``` OR create & activate new conda environment and run ```
+pip install Pillow opencv-python scikit-image matplotlib torch hydra-core tqdm torchvision tensorflow pandas trimesh iopath  ```
+
