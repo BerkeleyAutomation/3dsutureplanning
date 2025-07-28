@@ -2,6 +2,8 @@ import customtkinter as ctk
 from tkinter import filedialog
 import scipy.interpolate as inter
 from SuturePlacer import SuturePlacer
+import matplotlib.pyplot as plt
+
 from InsertionPointGenerator import InsertionPointGenerator
 from ScaleGenerator import ScaleGenerator
 from SutureDisplayAdjust2D import SutureDisplayAdjust2D
@@ -38,7 +40,7 @@ class GUI(ctk.CTk):
         self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
 
         self.done_clicking = ctk.CTkButton(self, text="Done!", command=self.done_clicking, width=150, height=50, font=("Arial", 17))
-        self.generate_mask = ctk.CTkButton(self, text="Generate Mask", command=self.create_mask_from_points, width=150, height=50, font=("Arial", 17))
+        self.generate_mask = ctk.CTkButton(self, text="Compute Centerline", command=self.compute_centerline, width=150, height=50, font=("Arial", 17))
 
 
         self.scale_pts = []
@@ -68,17 +70,17 @@ class GUI(ctk.CTk):
             self.line_ids.append(line_id)
 
             h, w = self.tk_image.height(), self.tk_image.width()
-            mask = np.zeros((h, w), dtype=np.uint8)
+            self.mask = np.zeros((h, w), dtype=np.uint8)
 
             pts = np.array(self.points, dtype=np.int32)
-            cv2.fillPoly(mask, [pts], 255)
+            cv2.fillPoly(self.mask, [pts], 255)
 
-            base_image = Image.open(self.image_path).resize((600, 400)).convert("RGBA")
+            base_image = self.image.convert("RGBA")
 
             overlay = Image.new("RGBA", (w, h), (0, 0, 255, 0))
             for y in range(h):
                 for x in range(w):
-                    if mask[y, x] == 255:
+                    if self.mask[y, x] == 255:
                         overlay.putpixel((x, y), (0, 0, 255, 100))  # semi-transparent blue
 
             blended = Image.alpha_composite(base_image, overlay)
@@ -88,7 +90,51 @@ class GUI(ctk.CTk):
             self.canvas.image = self.tk_image  # keep a reference
 
 
-    def create_mask_from_points(self):
+    def compute_centerline(self):
+        ordered_points, _, _ = EdgeDetector.img_to_line(self.image_path, self.mask)
+
+        x = [a[1] for a in ordered_points]
+        y = [a[0] for a in ordered_points]
+
+
+
+        base_image = self.image.convert("RGB")
+        draw = ImageDraw.Draw(base_image)
+
+        for pt in ordered_points:
+            draw.ellipse((pt[1] - 2, pt[0] - 2, pt[1] + 2, pt[0] + 2), fill="red")
+
+        self.tk_image = ImageTk.PhotoImage(base_image)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
+        self.canvas.image = self.tk_image  # retain reference
+        
+
+        tck, u = inter.splprep([x, y], k=5)
+
+        pixel_dist = math.sqrt((self.scale_pts[0][0] - self.scale_pts[1][0]) ** 2 + (self.scale_pts[0][1] - self.scale_pts[1][1]) ** 2)
+        mm_per_pixel = real_dist / pixel_dist
+        deg = 5
+
+
+        wound_parametric = lambda t, d: inter.splev(t, tck, der = d)
+
+        # Put the wound into all the relevant objects
+        newSuturePlacer = SuturePlacer(5, mm_per_pixel)
+        newSuturePlacer.tck = tck
+        newSuturePlacer.DistanceCalculator.tck = tck
+
+        newSuturePlacer.wound_parametric = wound_parametric
+        newSuturePlacer.DistanceCalculator.wound_parametric = wound_parametric
+        newSuturePlacer.RewardFunction.wound_parametric = wound_parametric
+
+        newSuturePlacer.image = self.image_path
+        
+        # The main algorithm
+        newSuturePlacer.place_sutures()
+        return newSuturePlacer
+
+
+
         return
         
         
@@ -97,14 +143,8 @@ class GUI(ctk.CTk):
         self.done_clicking.grid_forget()
         self.canvas.unbind("<Button-1>")
         self.canvas.delete("suture")
-        real_dist = 5
-        wound_width = 5
         
         self.suture_planner_text.configure(text="Now click and drag a region around the wound for us to segment!")
-
-        pixel_dist = math.sqrt((self.scale_pts[0][0] - self.scale_pts[1][0]) ** 2 + (self.scale_pts[0][1] - self.scale_pts[1][1]) ** 2)
-        mm_per_pixel = real_dist / pixel_dist
-        deg = 5
 
 
         self.drawing = False
@@ -177,9 +217,8 @@ class GUI(ctk.CTk):
             self.image_path = image_path
             self.upload_image_button.grid_forget()
             
-            image = Image.open(self.image_path)
-            image = image.resize((600, 400))
-            self.tk_image = ImageTk.PhotoImage(image)
+            self.image = Image.open(self.image_path).resize((600, 400))
+            self.tk_image = ImageTk.PhotoImage(self.image)
 
             self.canvas = ctk.CTkCanvas(self, width=600, height=400)
             self.canvas.grid(row=4, column=0, padx=20, pady=20)
@@ -228,6 +267,7 @@ class GUI(ctk.CTk):
         # time.sleep(0.5)
 
         pixel_dist = math.sqrt((scale_pts[0][0] - scale_pts[1][0]) ** 2 + (scale_pts[0][1] - scale_pts[1][1]) ** 2)
+        real_dist = 5
         mm_per_pixel = real_dist / pixel_dist
         deg = 5
         

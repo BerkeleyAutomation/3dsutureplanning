@@ -79,7 +79,7 @@ def img_to_line(img_path, original_mask):
 
     # now, order the points
 
-    img = Image.open(img_path)
+    img = Image.open(img_path).resize((600, 400))
     left_img = np.asarray(img)
     plt.imshow(left_img)
     # show_mask(display_mask)
@@ -115,9 +115,9 @@ def img_to_line(img_path, original_mask):
     # plt.scatter([pt[0] for pt in border_pts_gaps_filled], [pt[1] for pt in border_pts_gaps_filled], color='blue', s=1)
     #plt.plot([pt[0] for pt in border_pts_gaps_filled], [pt[1] for pt in border_pts_gaps_filled], 'b')
 
-    plt.plot([pt[1] for pt in ordered_points], [pt[0] for pt in ordered_points], 'w')
-    # plt.plot([border_pts[0,0], border_pts[-1,0]], [border_pts[0,1], border_pts[-1,1]], 'r')
-    plt.show()
+    # plt.plot([pt[1] for pt in ordered_points], [pt[0] for pt in ordered_points], 'w')
+    # # plt.plot([border_pts[0,0], border_pts[-1,0]], [border_pts[0,1], border_pts[-1,1]], 'r')
+    # plt.show()
     
     # print(fill_gaps(border_pts))
 
