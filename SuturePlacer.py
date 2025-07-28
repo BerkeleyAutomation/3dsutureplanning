@@ -67,7 +67,7 @@ class SuturePlacer:
 
         return insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts, result.x
     
-    def place_sutures(self, sample_spline=None, save_figs=True):
+    def place_sutures(self, save_figs=True):
 
         # make a folder to store info
 

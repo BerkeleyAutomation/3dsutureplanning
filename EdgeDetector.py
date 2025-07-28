@@ -34,55 +34,13 @@ class EdgeDetector:
         pass
 
 
-def img_to_line(img_path, box_method=False, viz=False, save_figs=False, progress_tracker=None):
+def img_to_line(img_path, original_mask):
 
-    if not os.path.isdir("temp_images"):
-        os.mkdir('temp_images')
-    
-    # load the image and convert into
-    # numpy array
-    # img = Image.open(img_path)
-    
-    # # asarray() class is used to convert
-    # # PIL images into NumPy arrays
-    # numpydata = np.asarray(img)
-    
-    # fig = plt.figure()
-    # plt.imshow(numpydata)
-    
-    # left_coords, right_coords = click_points_simple(fig)
-    
-    # print(left_coords)
-    # print(right_coords)
-
-    # num_left = len(left_coords)
-    # num_right = len(right_coords)
-
-    # fore_back = [1 for _ in range(num_left)] + [0 for _ in range(num_right)]
-
-    def show_mask(mask, random_color=False):
-        if random_color:
-            color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
-        else:
-            color = np.array([30/255, 144/255, 255/255, 0.6])
-        h, w = mask.shape[-2:]
-        mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
-        plt.imshow(mask_image)
-    
-    # Create mask with progress tracking
-    original_mask, img, display_mask = create_mask(img_path, progress_tracker)
     cv2.imwrite('temp_images/sam_mask.jpg', original_mask)
     
-    # Update progress for mask processing
-    if progress_tracker:
-        progress_tracker.update_stage_progress("mask_drawing", 0.8)
     
     mask = keep_largest_connected_component('temp_images/sam_mask.jpg')
     cv2.imwrite('temp_images/sam_mask.jpg', mask)
-    
-    # Update progress for mask completion
-    if progress_tracker:
-        progress_tracker.update_stage_progress("mask_drawing", 1.0)
     
     ## VARIABLE WOUND WIDTH STUFF
     # TRY GETTING BORDER OF MASK
@@ -118,9 +76,6 @@ def img_to_line(img_path, box_method=False, viz=False, save_figs=False, progress
 
     filled_holes = Image.open("temp_images/sam_mask.jpg")
     numpydata = np.asarray(filled_holes)
-    # plot the image, dilation, skeleton
-    if save_figs:
-        plt.savefig('experimentation/point_results/chicken_result_left1.jpg', dpi=1200)
 
     # now, order the points
 

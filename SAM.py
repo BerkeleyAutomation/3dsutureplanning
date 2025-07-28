@@ -29,6 +29,7 @@ def create_mask(imgPath, progress_tracker=None):
     
     def draw_mask(event, x, y, flags, param):
         nonlocal drawing, mask, points, display_img
+        
         if event == cv2.EVENT_LBUTTONDOWN:
             drawing = True
             points = [(x, y)]
