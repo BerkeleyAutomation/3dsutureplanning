@@ -44,6 +44,7 @@ class GUI(ctk.CTk):
 
         self.done_clicking = ctk.CTkButton(self, text="Done!", command=self.done_clicking, width=150, height=50, font=("Arial", 17))
         self.generate_mask = ctk.CTkButton(self, text="Compute Centerline", command=self.compute_centerline, width=150, height=50, font=("Arial", 17))
+        self.start_opt = ctk.CTkButton(self, text="Start Optimization", command=self.optimization, width=150, height=50, font=("Arial", 17))
 
 
         self.scale_pts = []
@@ -93,6 +94,28 @@ class GUI(ctk.CTk):
             self.canvas.image = self.tk_image  # keep a reference
 
 
+    def optimization(self):
+        print('Starting Optimization')
+        # self.start_opt.grid_forget()
+        self.canvas.destroy()
+        
+        self.suture_planner_text.configure(text="Suture Optimization Process Initiated! Please wait...")
+
+        print('Creating Progress Bar')
+
+        def updateprogress(progressbar, cur_val, tar_val, step, ms):
+            if cur_val < tar_val:
+                new_val = min(cur_val + step, tar_val)
+                progressbar.set(new_val)
+                progressbar.master.after(ms, updateprogress, progressbar, new_val, tar_val, step, ms)
+
+        self.progress_bar = ctk.CTkProgressBar(self, orientation='horizontal', mode='determinate', width=300)
+        self.progress_bar.grid(row=50, column=0, padx=20, pady=20)
+        self.progress_bar.set(0)
+        updateprogress(self.progress_bar,0,1,0.01,100)
+        #self.progress_bar.start()
+
+
     def compute_centerline(self):
         ordered_points, _, _ = EdgeDetector.img_to_line(self.image_path, self.mask)
 
@@ -118,71 +141,37 @@ class GUI(ctk.CTk):
 
         print('-- Centerline Drawn -- ')
 
-        class OPT(ctk.CTk):
-            def __init__(self):
-                super().__init__()
+        self.generate_mask.grid_forget()
+        self.start_opt.grid(row=100, column=0, padx=20, pady=20)
+        self.suture_planner_text.configure(text="Wound centerline is displayed in red. Press the button below to begin suture placement optimization.")
 
-                ctk.set_appearance_mode("System")
-                ctk.set_default_color_theme("blue")
+        ## temp comment start
 
-                self.title("Suture Optimization")
-                self.geometry("750x750")
-                self.grid_columnconfigure(0, weight=1)
-
-                optimization_label = ctk.CTkLabel(self, text="Suture Optimization", font=("Arial Bold", 40), fg_color="#2f98c9", text_color="white")
-                optimization_label.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
-
-                self.optimization_text = ctk.CTkLabel(self, text="Suture Optimization Process Initiated...", font=("Arial", 15), wraplength=400)
-                self.optimization_text.grid(row=1, column=0, padx=20, pady=20)
-
-                #self.exit_button = ctk.CTkButton(self, text="X", command=self.destroy, width=50, height=50, font=("Arial", 17))
-                #self.exit_button.grid(row=0, column=100, padx=20, pady=20)
-
-                print('Creating Progress Bar')
-
-                def updateprogress(progressbar, cur_val, tar_val, step, ms):
-                    if cur_val < tar_val:
-                        new_val = min(cur_val + step, tar_val)
-                        progressbar.set(new_val)
-                        progressbar.master.after(ms, updateprogress, progressbar, new_val, tar_val, step, ms)
-
-                self.progress_bar = ctk.CTkProgressBar(self, orientation='horizontal', mode='determinate', width=300)
-                self.progress_bar.grid(row=100, column=0, padx=20, pady=20)
-                self.progress_bar.set(0)
-                print('Updating progress bar init')
-                updateprogress(self.progress_bar,0,1,0.01,100)
-                print('updating progress bar fin')
-                #self.progress_bar.start()
-
-        optwin = OPT()
-        optwin.mainloop()
-
-        ## 
-
-        pixel_dist = math.sqrt((self.scale_pts[0][0] - self.scale_pts[1][0]) ** 2 + (self.scale_pts[0][1] - self.scale_pts[1][1]) ** 2)
-        mm_per_pixel = real_dist / pixel_dist
-        deg = 5
+        # pixel_dist = math.sqrt((self.scale_pts[0][0] - self.scale_pts[1][0]) ** 2 + (self.scale_pts[0][1] - self.scale_pts[1][1]) ** 2)
+        # mm_per_pixel = real_dist / pixel_dist
+        # deg = 5
 
 
 
-        wound_parametric = lambda t, d: inter.splev(t, tck, der = d)
+        # wound_parametric = lambda t, d: inter.splev(t, tck, der = d)
 
-        # Put the wound into all the relevant objects
-        newSuturePlacer = SuturePlacer(5, mm_per_pixel)
-        newSuturePlacer.tck = tck
-        newSuturePlacer.DistanceCalculator.tck = tck
+        # # Put the wound into all the relevant objects
+        # newSuturePlacer = SuturePlacer(5, mm_per_pixel)
+        # newSuturePlacer.tck = tck
+        # newSuturePlacer.DistanceCalculator.tck = tck
 
-        newSuturePlacer.wound_parametric = wound_parametric
-        newSuturePlacer.DistanceCalculator.wound_parametric = wound_parametric
-        newSuturePlacer.RewardFunction.wound_parametric = wound_parametric
+        # newSuturePlacer.wound_parametric = wound_parametric
+        # newSuturePlacer.DistanceCalculator.wound_parametric = wound_parametric
+        # newSuturePlacer.RewardFunction.wound_parametric = wound_parametric
 
-        newSuturePlacer.image = self.image_path
+        # newSuturePlacer.image = self.image_path
 
         
-        # The main algorithm
-        newSuturePlacer.place_sutures()
-        return newSuturePlacer
+        # # The main algorithm
+        # newSuturePlacer.place_sutures()
+        # return newSuturePlacer
 
+        ## temp comment end
 
         return
     
