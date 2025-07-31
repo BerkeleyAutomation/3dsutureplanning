@@ -35,6 +35,9 @@ class GUI(ctk.CTk):
         self.suture_planner_text = ctk.CTkLabel(self, text="Welcome to the Suture Planner. Upload an image of a wound to get started!", font=("Arial", 15), wraplength=400)
         self.suture_planner_text.grid(row=1, column=0, padx=20, pady=20)
 
+        #self.exit_button = ctk.CTkButton(self, text="X", command=self.destroy, width=50, height=50, font=("Arial", 17))
+        #self.exit_button.grid(row=0, column=100, padx=20, pady=20)
+
 
         self.upload_image_button = ctk.CTkButton(self, text="Upload Image", command=self.upload_image, width=150, height=50, font=("Arial", 17))
         self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
@@ -111,9 +114,55 @@ class GUI(ctk.CTk):
 
         tck, u = inter.splprep([x, y], k=5)
 
+        ## 
+
+        print('-- Centerline Drawn -- ')
+
+        class OPT(ctk.CTk):
+            def __init__(self):
+                super().__init__()
+
+                ctk.set_appearance_mode("System")
+                ctk.set_default_color_theme("blue")
+
+                self.title("Suture Optimization")
+                self.geometry("750x750")
+                self.grid_columnconfigure(0, weight=1)
+
+                optimization_label = ctk.CTkLabel(self, text="Suture Optimization", font=("Arial Bold", 40), fg_color="#2f98c9", text_color="white")
+                optimization_label.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
+
+                self.optimization_text = ctk.CTkLabel(self, text="Suture Optimization Process Initiated...", font=("Arial", 15), wraplength=400)
+                self.optimization_text.grid(row=1, column=0, padx=20, pady=20)
+
+                #self.exit_button = ctk.CTkButton(self, text="X", command=self.destroy, width=50, height=50, font=("Arial", 17))
+                #self.exit_button.grid(row=0, column=100, padx=20, pady=20)
+
+                print('Creating Progress Bar')
+
+                def updateprogress(progressbar, cur_val, tar_val, step, ms):
+                    if cur_val < tar_val:
+                        new_val = min(cur_val + step, tar_val)
+                        progressbar.set(new_val)
+                        progressbar.master.after(ms, updateprogress, progressbar, new_val, tar_val, step, ms)
+
+                self.progress_bar = ctk.CTkProgressBar(self, orientation='horizontal', mode='determinate', width=300)
+                self.progress_bar.grid(row=100, column=0, padx=20, pady=20)
+                self.progress_bar.set(0)
+                print('Updating progress bar init')
+                updateprogress(self.progress_bar,0,1,0.01,100)
+                print('updating progress bar fin')
+                #self.progress_bar.start()
+
+        optwin = OPT()
+        optwin.mainloop()
+
+        ## 
+
         pixel_dist = math.sqrt((self.scale_pts[0][0] - self.scale_pts[1][0]) ** 2 + (self.scale_pts[0][1] - self.scale_pts[1][1]) ** 2)
         mm_per_pixel = real_dist / pixel_dist
         deg = 5
+
 
 
         wound_parametric = lambda t, d: inter.splev(t, tck, der = d)
@@ -128,16 +177,15 @@ class GUI(ctk.CTk):
         newSuturePlacer.RewardFunction.wound_parametric = wound_parametric
 
         newSuturePlacer.image = self.image_path
+
         
         # The main algorithm
         newSuturePlacer.place_sutures()
         return newSuturePlacer
 
 
-
         return
-        
-        
+    
     
     def done_clicking(self):
         self.done_clicking.grid_forget()
