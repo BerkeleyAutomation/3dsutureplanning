@@ -32,10 +32,6 @@ class OptFrame(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
 
         #initial widgets to frame
-        #self.optframe_title = ctk.CTkLabel(self, text='Suture Optimization Progress...')
-        #self.optframe_title.grid(row=0, column=0, padx=10, pady=10)
-
-        self.is_running = False
         self.cur_num_sutures = 0
         self.test_suture_range = (0,0)
         self.best_loss = float('inf')
@@ -116,15 +112,6 @@ class OptFrame(ctk.CTkFrame):
         self.graph_ax.axis('off')
         self.graph_canvas.draw()
 
-    def start(self):
-        # start Frame in main thread
-        self.is_running = True
-        print('Starting Optimization Frame')
-    
-    def stop(self):
-        self.is_running = False
-        print('Optimization Complete')
-    
     def update_progress(self,progress: float, stage: str=''):
         self.progress_bar.set(progress)
         self.progress_percent.configure(text=f'{progress*100:.1f}%')
@@ -416,8 +403,6 @@ class GUI(ctk.CTk):
 
         self.final_canvas = ctk.CTkCanvas(self, width=600, height=400)
         self.final_canvas.grid(row=4, column=0, padx=20, pady=20)
-        canvas_h = self.final_canvas.winfo_height()
-        canvas_w = self.final_canvas.winfo_width()
         
         self.image = Image.open(self.image_path).resize((600,400))
         self.tk_image = ImageTk.PhotoImage(self.image)
@@ -426,12 +411,12 @@ class GUI(ctk.CTk):
         self.final_canvas.image = self.tk_image # keep reference to image
 
         # plot suture points
-        r = 4
+        r = 3
         for i in range(self.optFrame.num_pts):
-            self.final_canvas.create_oval(self.optFrame.insert_pts[i][1]-r,self.optFrame.insert_pts[i][0]-r,self.optFrame.insert_pts[i][1]+r,self.optFrame.insert_pts[i][0]+r,fill='red') #Insertion
-            self.final_canvas.create_oval(self.optFrame.extract_pts[i][1]-r,self.optFrame.extract_pts[i][0]-r,self.optFrame.extract_pts[i][1]+r,self.optFrame.extract_pts[i][0]+r,fill='blue') #Extraction
-            self.final_canvas.create_oval(self.optFrame.center_pts[i][1]-r,self.optFrame.center_pts[i][0]-r,self.optFrame.center_pts[i][1]+r,self.optFrame.center_pts[i][0]+r,fill='green') #Center
-            self.final_canvas.create_line(self.optFrame.insert_pts[i][1],self.optFrame.insert_pts[i][0],self.optFrame.extract_pts[i][1],self.optFrame.extract_pts[i][0],fill='black',width=1)
+            self.final_canvas.create_oval(self.optFrame.insert_pts[i][0]-r,self.optFrame.insert_pts[i][1]-r,self.optFrame.insert_pts[i][0]+r,self.optFrame.insert_pts[i][1]+r,fill='red') #Insertion
+            self.final_canvas.create_oval(self.optFrame.extract_pts[i][0]-r,self.optFrame.extract_pts[i][1]-r,self.optFrame.extract_pts[i][0]+r,self.optFrame.extract_pts[i][1]+r,fill='blue') #Extraction
+            #self.final_canvas.create_oval(self.optFrame.center_pts[i][0]-r,self.optFrame.center_pts[i][1]-r,self.optFrame.center_pts[i][0]+r,self.optFrame.center_pts[i][1]+r,fill='green') #Center
+            self.final_canvas.create_line(self.optFrame.insert_pts[i][0],self.optFrame.insert_pts[i][1],self.optFrame.extract_pts[i][0],self.optFrame.extract_pts[i][1],fill='black',width=3)
 
         self.suture_planner_text.configure(text='Final Optimized Suture Placement Plan')
         self.end_program_button.grid(row=100, column=0, padx=20, pady=20)
