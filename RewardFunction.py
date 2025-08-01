@@ -24,6 +24,9 @@ class RewardFunction():
         self.wcp_xs = None
         self.wcp_ys = None
 
+        # parameter for minor axis that can be tuned later
+        self.a = 0.5
+
     # distance lists added to this object by SuturePlacer.
     # variance
 
@@ -168,7 +171,7 @@ class RewardFunction():
 
             # Ellipse Axes: Found by Tuning so that the reward function is as constant
             # as possible for consecutive sutures on a line.
-            a = 0.5 # Minor axis
+            #self.a = 0.5 # Minor axis
             b = 1 # Major axis
             closure_r = 1 # Probably always 1, but can experiment with higher values
             shear_r = 1.3
@@ -177,7 +180,7 @@ class RewardFunction():
             def ellipse_distance(p, q, alpha):
                 return math.sqrt(
                     ((p * math.cos(alpha) + q * math.sin(alpha)) ** 2) /
-                    ((self.SuturePlacer.wound_width * a) ** 2) +
+                    ((self.SuturePlacer.wound_width * self.a) ** 2) +
                     ((-p * math.sin(alpha) + q * math.cos(alpha)) ** 2) /
                     ((self.SuturePlacer.wound_width * b) ** 2)
                 )

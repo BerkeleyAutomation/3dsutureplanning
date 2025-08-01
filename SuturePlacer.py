@@ -54,6 +54,9 @@ class SuturePlacer:
         self.progress += self.progress_incre
         optFrame.update_progress(self.progress)
 
+        self.progress += self.progress_incre
+        optFrame.after(100,optFrame.update_progress,self.progress)
+
         result = optim.minimize(final_loss, wound_points, constraints = self.Constraints.constraints(), options={"maxiter":200}, method = 'SLSQP', tol=1e-2, jac = jac)
         
         # continuous progress bar
@@ -69,6 +72,9 @@ class SuturePlacer:
         self.insert_pts = insert_pts
         self.center_pts = center_pts
         self.extract_pts = extract_pts
+
+        self.progress += self.progress_incre
+        optFrame.after(100,optFrame.update_progress,self.progress)
 
         result = optim.minimize(final_loss, wound_points, constraints = self.Constraints.constraints(), options={"maxiter":200}, method = 'SLSQP', tol = 1e-2, jac = jac)
         plt.clf()
@@ -97,13 +103,12 @@ class SuturePlacer:
             os.mkdir('clicking/' + dt_string + '/shear')
 
         num_sutures_initial = int(self.DistanceCalculator.initial_number_of_sutures(0, 1)) # heuristic
-        num_sutures_initial = num_sutures_initial / 2 # changed suture width drawing
+        num_sutures_initial = int(num_sutures_initial / 4) # changed suture width calculations from drawing
         print("NUM SUTURES INITIAL:", num_sutures_initial)
         
         # Set up suture range for progress tracking
         start_range = max(2, int(num_sutures_initial))
-        #end_range = int(2.2 * num_sutures_initial)
-        end_range = int(1.2 * num_sutures_initial)
+        end_range = int(2.2 * num_sutures_initial)
 
         # set up optimization frame
         _optFrame.set_suture_range(start_range,end_range)
@@ -112,7 +117,7 @@ class SuturePlacer:
         d = {}
         losses = {}
         points_dict = {}
-        self.progress_incre = (1 / (end_range - start_range + 1)) / 8
+        self.progress_incre = (1 / (end_range - start_range + 1)) / 10
         for num_sutures in range(start_range, end_range): # This should be (0.8 * heuristic to 1.4 * heuristic)
             print('TESTING NUM SUTURES: ', num_sutures)
             

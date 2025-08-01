@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from InsertionPointGenerator import InsertionPointGenerator
-from ScaleGenerator import ScaleGenerator
-from SutureDisplayAdjust2D import SutureDisplayAdjust2D
+# from InsertionPointGenerator import InsertionPointGenerator
+# from ScaleGenerator import ScaleGenerator
+# from SutureDisplayAdjust2D import SutureDisplayAdjust2D
+import RewardFunction
 import numpy as np
 import cv2
 import math
@@ -220,7 +221,7 @@ class GUI(ctk.CTk):
         ctk.set_default_color_theme('green')
 
         self.title('Suture Planning App')
-        self.geometry('1000x750')
+        self.geometry('1000x800') #'750x750'
         self.grid_columnconfigure(0, weight=1)
 
         suture_planner_title = ctk.CTkLabel(self, text='Suture Planner', font=('Arial Bold',40), fg_color='#2fc986', text_color='white')
@@ -233,16 +234,28 @@ class GUI(ctk.CTk):
         self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
 
         self.scale_pts = []
+        self.a = 0.5
 
         self.suture_drawn_button = ctk.CTkButton(self, text='Done!', command=self.suture_drawn, width=150, height=50, font=('Arial',17))
         self.mask_generated = ctk.CTkButton(self, text='Compute Wound Centerline', command=self.compute_centerline, width=150, height=50, font=('Arial',17))
         self.start_opt = ctk.CTkButton(self, text='Start Optimization', command=self.optimization, width=150, height=50, font=('Arial',17))
         self.see_final_opt = ctk.CTkButton(self, text='View Optimized Suture Plan', command=self.view_final, width=150, height=50, font=('Arial',17))
-        self.end_program_button = ctk.CTkButton(self, text='Close Program', command=self.on_close, width=150, height=50,font=('Arial',17))
+        
+        self.buttons_frame = ctk.CTkFrame(self)
+        self.buttons_frame.grid_rowconfigure(0,weight=1)
+
+        self.a_slider = ctk.CTkSlider(self.buttons_frame,from_=0, to=1,orientation='horizontal',width=150)
+        self.a_value = ctk.CTkLabel(self.buttons_frame, text=f'a = {round(self.a,2)}',font=('Arial',12))
+        self.rerun_button = ctk.CTkButton(self.buttons_frame, text='Rerun Program', command=self.rerun, width=150, height=50, font=('Arial',17))
+        self.end_program_button = ctk.CTkButton(self.buttons_frame, text='Close Program', command=self.on_close, width=150, height=50,font=('Arial',17))
 
     def on_close(self):
         self.destroy()
         sys.exit()
+    
+    def slider_update(self,event):
+        self.a = self.a_slider.get()
+        self.a_value.configure(text=f'a = {round(self.a,2)}')
 
     def on_image_click(self,event):
         x, y = event.x, event.y
@@ -373,7 +386,7 @@ class GUI(ctk.CTk):
 
         # Start progress canvas (progress bar and update information)
         # Create instance of frame for optimization progress
-        self.optFrame = OptFrame(parent=self, width=500, height=500, border_width=2, border_color='green', fg_color='lightgray')
+        self.optFrame = OptFrame(parent=self, width=500, height=500, border_width=2, border_color='green', fg_color='transparent')
         self.optFrame.grid(row=50, column=0, padx=20, pady=20, sticky='nsew')
 
         # main optimization algorithm
@@ -387,6 +400,8 @@ class GUI(ctk.CTk):
         newSuturePlacer = SuturePlacer(wound_width,mm_per_pixel)
         newSuturePlacer.tck = self.tck
         newSuturePlacer.DistanceCalculator.tck = self.tck
+        newSuturePlacer.RewardFunction.a = self.a
+        self.a_value.configure(text=f'a = {round(self.a,2)}')
 
         newSuturePlacer.wound_parametric = wound_parametric
         newSuturePlacer.DistanceCalculator.wound_parametric = wound_parametric
@@ -396,6 +411,18 @@ class GUI(ctk.CTk):
         newSuturePlacer.place_sutures(_optFrame=self.optFrame)
 
         self.see_final_opt.grid(row=100, column=0, padx=20, pady=20)
+    
+    def rerun(self):
+        self.a = self.a_slider.get()
+        print(f'Rerunning program with a = {round(self.a,2)}')
+        self.final_canvas.destroy()
+        self.a_slider.grid_forget()
+        self.a_slider.unbind('<ButtonRelease-1>')
+        self.a_value.grid_forget()
+        self.rerun_button.grid_forget()
+        self.end_program_button.grid_forget()
+        self.buttons_frame.grid_forget()
+        self.optimization()
     
     def view_final(self):
         self.optFrame.grid_forget()
@@ -419,7 +446,12 @@ class GUI(ctk.CTk):
             self.final_canvas.create_line(self.optFrame.insert_pts[i][0],self.optFrame.insert_pts[i][1],self.optFrame.extract_pts[i][0],self.optFrame.extract_pts[i][1],fill='black',width=3)
 
         self.suture_planner_text.configure(text='Final Optimized Suture Placement Plan')
-        self.end_program_button.grid(row=100, column=0, padx=20, pady=20)
+        self.buttons_frame.grid(row=100,column=0,padx=20,pady=10)
+        self.a_slider.grid(row=0,column=0,padx=0,pady=10)
+        self.a_slider.bind('<ButtonRelease-1>',self.slider_update)
+        self.a_value.grid(row=0, column=1, padx=0,pady=10)
+        self.rerun_button.grid(row=1, column=0, padx=20, pady=10)
+        self.end_program_button.grid(row=1, column=1, padx=20, pady=10)
 
 if __name__ == '__main__':
     app = GUI()
