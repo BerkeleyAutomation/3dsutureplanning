@@ -17,6 +17,10 @@ import tkinter as tk
 import EdgeDetector
 from PIL import Image
 
+import threading
+import time
+import queue
+
 
 class GUI(ctk.CTk):
     def __init__(self):
@@ -45,7 +49,9 @@ class GUI(ctk.CTk):
         self.done_clicking = ctk.CTkButton(self, text="Done!", command=self.done_clicking, width=150, height=50, font=("Arial", 17))
         self.generate_mask = ctk.CTkButton(self, text="Compute Centerline", command=self.compute_centerline, width=150, height=50, font=("Arial", 17))
         self.start_opt = ctk.CTkButton(self, text="Start Optimization", command=self.optimization, width=150, height=50, font=("Arial", 17))
+        self.test_sutures = ctk.CTkButton(self, text="Begin", command=self.test_sutures_func, width=150, height=50, font=("Arial", 17))
 
+        self.progress_label = ctk.CTkLabel(self, text="Suture Statistics Here", font=("Arial", 15), wraplength=400)
 
         self.scale_pts = []
 
@@ -93,15 +99,46 @@ class GUI(ctk.CTk):
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
             self.canvas.image = self.tk_image  # keep a reference
 
+    def test_sutures_func(self):
+        print('Starting Main Algorithm')
+        self.suture_planner_text.configure(text="Suture Optimization Process")
+        self.progress_label.grid(row=75, column=0, padx=20, pady=20)
+        self.test_sutures.configure(state='disabled')
+        self.update_idletasks()
+
+        # main algorithm
+        wound_width = 5
+        real_dist = 5
+        pixel_dist = math.sqrt((self.scale_pts[0][0] - self.scale_pts[1][0]) ** 2 + (self.scale_pts[0][1] - self.scale_pts[1][1]) ** 2)
+        mm_per_pixel = real_dist / pixel_dist
+        deg = 5
+        wound_parametric = lambda t, d: inter.splev(t, self.tck, der = d)
+
+        # Put the wound into all the relevant objects
+        newSuturePlacer = SuturePlacer(wound_width, mm_per_pixel)
+        newSuturePlacer.tck = self.tck
+        newSuturePlacer.DistanceCalculator.tck = self.tck
+
+        newSuturePlacer.wound_parametric = wound_parametric
+        newSuturePlacer.DistanceCalculator.wound_parametric = wound_parametric
+        newSuturePlacer.RewardFunction.wound_parametric = wound_parametric
+
+        newSuturePlacer.image = self.image_path
+        
+        # The main algorithm
+        threading.Thread(target=newSuturePlacer.place_sutures(mainGUI=self)).start()
+        #newSuturePlacer.place_sutures(mainGUI=self)
+        self.progress_label.configure(text="Suture Optimization Complete.")
+        self.progress_bar.set(1)
+        self.update_idletasks()
+        return newSuturePlacer
 
     def optimization(self):
         print('Starting Optimization')
         # self.start_opt.grid_forget()
         self.canvas.destroy()
         
-        self.suture_planner_text.configure(text="Suture Optimization Process Initiated! Please wait...")
-
-        print('Creating Progress Bar')
+        self.suture_planner_text.configure(text="Press begin to start testing sutures.")
 
         def updateprogress(progressbar, cur_val, tar_val, step, ms):
             if cur_val < tar_val:
@@ -112,9 +149,25 @@ class GUI(ctk.CTk):
         self.progress_bar = ctk.CTkProgressBar(self, orientation='horizontal', mode='determinate', width=300)
         self.progress_bar.grid(row=50, column=0, padx=20, pady=20)
         self.progress_bar.set(0)
-        updateprogress(self.progress_bar,0,1,0.01,100)
+
+        self.progress_queue = queue.Queue()
+        self.after(100, self.check_progress_queue)
+        #updateprogress(self.progress_bar,0,1,0.01,100)
         #self.progress_bar.start()
 
+        self.start_opt.grid_forget()
+        self.test_sutures.grid(row=100, column=0, padx=20, pady=20)
+
+    def check_progress_queue(self):
+        try:
+            message = self.progress_queue.get_nowait()
+            if message == "DONE":
+                self.test_sutures.configure(state='normal')
+            else:
+                self.progress_bar.set(message)
+        except queue.Empty:
+            pass
+        self.after(100, self.check_progress_queue)
 
     def compute_centerline(self):
         ordered_points, _, _ = EdgeDetector.img_to_line(self.image_path, self.mask)
@@ -135,11 +188,11 @@ class GUI(ctk.CTk):
         self.canvas.image = self.tk_image  # retain reference
         
 
-        tck, u = inter.splprep([x, y], k=5)
+        self.tck, u = inter.splprep([x, y], k=5)
 
         ## 
 
-        print('-- Centerline Drawn -- ')
+        #print('-- Centerline Drawn -- ')
 
         self.generate_mask.grid_forget()
         self.start_opt.grid(row=100, column=0, padx=20, pady=20)
@@ -356,8 +409,6 @@ class GUI(ctk.CTk):
         # allow for edit
         newSutureDisAdj.adjust_points(img_color, img_point)
         return
-
-
 
 if __name__ == "__main__":
     app = GUI()

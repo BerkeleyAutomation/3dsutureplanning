@@ -250,7 +250,8 @@ class GUI(ctk.CTk):
         self.end_program_button = ctk.CTkButton(self.buttons_frame, text='Close Program', command=self.on_close, width=150, height=50,font=('Arial',17))
 
     def on_close(self):
-        self.destroy()
+        #self.destroy()
+        self.quit()
         sys.exit()
     
     def slider_update(self,event):

@@ -90,17 +90,17 @@ class SuturePlacer:
 
         # make a folder to store info
 
-        if save_figs:
-            if not os.path.isdir("clicking"):
-                os.mkdir('clicking')
+        # if save_figs:
+        #     if not os.path.isdir("clicking"):
+        #         os.mkdir('clicking')
             
-            now = datetime.now()
-            # dd/mm/YY H:M:S
-            dt_string = now.strftime("%d-%m-%Y-%H-%M-%S")
-            os.mkdir('clicking/' + dt_string)
-            os.mkdir('clicking/' + dt_string + '/sutures')
-            os.mkdir('clicking/' + dt_string + '/closure')
-            os.mkdir('clicking/' + dt_string + '/shear')
+        #     now = datetime.now()
+        #     # dd/mm/YY H:M:S
+        #     dt_string = now.strftime("%d-%m-%Y-%H-%M-%S")
+        #     os.mkdir('clicking/' + dt_string)
+        #     os.mkdir('clicking/' + dt_string + '/sutures')
+        #     os.mkdir('clicking/' + dt_string + '/closure')
+        #     os.mkdir('clicking/' + dt_string + '/shear')
 
         num_sutures_initial = int(self.DistanceCalculator.initial_number_of_sutures(0, 1)) # heuristic
         num_sutures_initial = int(num_sutures_initial / 4) # changed suture width calculations from drawing
@@ -193,11 +193,11 @@ class SuturePlacer:
 
             print(losses)
 
-            if save_figs:
+            # if save_figs:
             
-                self.DistanceCalculator.plot(b_ts, "Number of Sutures: " + str(num_sutures) + ". Total loss: " + str(best_loss), save_fig=str(num_sutures), plot_type='sutures',save_dir='clicking/'+dt_string)
-                self.DistanceCalculator.plot(b_ts, "Closure force for " + str(num_sutures) + " sutures", save_fig= str(num_sutures), plot_type='closure', save_dir='clicking/'+dt_string)
-                self.DistanceCalculator.plot(b_ts, "Shear force for " + str(num_sutures) + " sutures", save_fig=str(num_sutures), plot_type='shear', save_dir='clicking/'+dt_string)
+            #     self.DistanceCalculator.plot(b_ts, "Number of Sutures: " + str(num_sutures) + ". Total loss: " + str(best_loss), save_fig=str(num_sutures), plot_type='sutures',save_dir='clicking/'+dt_string)
+            #     self.DistanceCalculator.plot(b_ts, "Closure force for " + str(num_sutures) + " sutures", save_fig= str(num_sutures), plot_type='closure', save_dir='clicking/'+dt_string)
+            #     self.DistanceCalculator.plot(b_ts, "Shear force for " + str(num_sutures) + " sutures", save_fig=str(num_sutures), plot_type='shear', save_dir='clicking/'+dt_string)
 
             points_dict[num_sutures] = b_ts
 

@@ -1,8 +1,8 @@
 import numpy as np
-import torch
+#import torch
 from PIL import Image
 import cv2
-from sam2.build_sam import build_sam2
+#from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 sam2_checkpoint = "sam2/checkpoints/sam2.1_hiera_tiny.pt"
