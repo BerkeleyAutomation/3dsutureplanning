@@ -1,4 +1,5 @@
 # Suture-Placement
+2D Suture placement optimization algorithm and user interface.
 
 ## Setup Instructions
 1. Clone repo
