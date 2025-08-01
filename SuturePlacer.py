@@ -67,7 +67,7 @@ class SuturePlacer:
             self.DistanceCalculator.plot(result.x, "shear", plot_type='shear', save_fig='s1/' + str(len(wound_points)) + '_shear_' + str(random.randint(0, 1000000)))
 
         return insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts, result.x
-    
+
     def place_sutures(self, _optFrame, save_figs=False): #save_figs=Tru
 
         # make a folder to store info
@@ -93,7 +93,8 @@ class SuturePlacer:
         
         # Set up suture range for progress tracking
         start_range = max(2, int(num_sutures_initial))
-        end_range = int(2.2 * num_sutures_initial)
+        #end_range = int(2.2 * num_sutures_initial)
+        end_range = int(1.2 * num_sutures_initial)
 
         # set up optimization frame
         _optFrame.set_suture_range(start_range,end_range)
@@ -107,11 +108,13 @@ class SuturePlacer:
         d = {}
         losses = {}
         points_dict = {}
+        progress_incre = (1 / (end_range - start_range + 1)) / 5
         for num_sutures in range(start_range, end_range): # This should be (0.8 * heuristic to 1.4 * heuristic)
             print('TESTING NUM SUTURES: ', num_sutures)
             
             # Update progress GUI
             _optFrame.update_cur_sutures(num_sutures)
+            self.progress = (num_sutures - start_range) / (end_range - start_range + 1)
             # if progress_gui:
             #     progress_gui.update_current_sutures(num_sutures)
             #     progress_gui.set_status(f"Optimizing placement for {num_sutures} sutures...")
@@ -125,6 +128,10 @@ class SuturePlacer:
             self.RewardFunction.center_dists = center_dists
             self.RewardFunction.extract_dists = extract_dists
             best_loss = self.RewardFunction.hyperLoss()
+
+            # continuous progress bar
+            self.progress += progress_incre*1
+            _optFrame.update_progress(self.progress)
             
             # Get individual loss components
             closure_loss = self.RewardFunction.lossClosureForce(1, 0)
@@ -142,7 +149,7 @@ class SuturePlacer:
             
             # Update progress GUI with loss information
             _optFrame.update_losses(best_loss,closure_loss,shear_loss)
-            _optFrame.update_visualization(ts, f'Current Suture Plan Visualization: Optimized {num_sutures} Sutures')
+            _optFrame.update_visualization(ts, f'Suture Plan: Optimized {num_sutures} Sutures')
 
             # if progress_gui:
             #     progress_gui.update_losses(best_loss, closure_loss, shear_loss, 
