@@ -13,8 +13,11 @@
      conda activate <environment_name>
      pip install Pillow opencv-python scikit-image matplotlib torch hydra-core tqdm torchvision tensorflow pandas trimesh iopath customtkinter
      ```
-   OR
-   * run ```conda env create -f environment.yml``` to use the repository environment
+     OR
+   * Use the repository environment
+     ```
+     conda env create -f environment.yml
+     ```
 3. Open repository directory and run program
    ```
    cd 3dsutureplanning
