@@ -347,7 +347,7 @@ class GUI(ctk.CTk):
             self.image_canvas.grid(row=4, column=0, padx=20, pady=20)
             self.image_canvas.create_image(0,0,anchor=tk.NW,image=self.tk_image)
 
-            self.suture_planner_text.configure(text='Draw an example suture on the image by click two endpoints. The example suture should have your desired estimate suture length.')
+            self.suture_planner_text.configure(text='Draw an example suture on the image by clicking two endpoints. The example suture should have your desired estimate suture length.')
             
             self.image_canvas.bind('<Button-1>', self.on_image_click)
             self.suture_drawn_button.grid(row=100, column=0, padx=20, pady=20)
@@ -376,7 +376,7 @@ class GUI(ctk.CTk):
         self.tck, u = inter.splprep([self.x,self.y], k=5)
 
         self.mask_generated.grid_forget()
-        self.suture_planner_text.configure(text='Wound centerline is displayed in red. Press button below to begin suture placement optimization.')
+        self.suture_planner_text.configure(text='Wound centerline is displayed in red. Press the button below to begin suture placement optimization.')
         self.start_opt.grid(row=100, column=0, padx=20, pady=20)
     
     def optimization(self):
