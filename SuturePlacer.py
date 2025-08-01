@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from datetime import datetime
 import os
-from progress_gui import get_progress_gui
+#from progress_gui import get_progress_gui
 
 
 class SuturePlacer:
@@ -60,14 +60,15 @@ class SuturePlacer:
 
         result = optim.minimize(final_loss, wound_points, constraints = self.Constraints.constraints(), options={"maxiter":200}, method = 'SLSQP', tol = 1e-2, jac = jac)
         plt.clf()
-        save_intermittent_plots = True
+        #save_intermittent_plots = True
+        save_intermittent_plots = False
         if save_intermittent_plots:
             self.DistanceCalculator.plot(result.x, "closure", plot_type='closure', save_fig='s1/' + str(len(wound_points)) + '_closure_' + str(random.randint(0, 1000000)))
             self.DistanceCalculator.plot(result.x, "shear", plot_type='shear', save_fig='s1/' + str(len(wound_points)) + '_shear_' + str(random.randint(0, 1000000)))
 
         return insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts, result.x
     
-    def place_sutures(self, save_figs=True):
+    def place_sutures(self, _optFrame, save_figs=False): #save_figs=Tru
 
         # make a folder to store info
 
@@ -84,30 +85,36 @@ class SuturePlacer:
             os.mkdir('clicking/' + dt_string + '/shear')
 
         # Get progress GUI if available
-        progress_gui = get_progress_gui()
+        #progress_gui = get_progress_gui()
 
         num_sutures_initial = int(self.DistanceCalculator.initial_number_of_sutures(0, 1)) # heuristic
-        print("NUM SUTURES INITIAL", num_sutures_initial)
+        num_sutures_initial = num_sutures_initial / 2 # changed suture width drawing
+        print("NUM SUTURES INITIAL:", num_sutures_initial)
         
         # Set up suture range for progress tracking
         start_range = max(2, int(num_sutures_initial))
         end_range = int(2.2 * num_sutures_initial)
-        if progress_gui:
-            progress_gui.set_suture_range(start_range, end_range)
-            progress_gui.set_status("Starting suture placement optimization...")
-            # Set up visualization
-            progress_gui.set_distance_calculator(self.DistanceCalculator)
+
+        # set up optimization frame
+        _optFrame.set_suture_range(start_range,end_range)
+        _optFrame.set_distance_calculator(self.DistanceCalculator)
+        # if progress_gui:
+        #     progress_gui.set_suture_range(start_range, end_range)
+        #     progress_gui.set_status("Starting suture placement optimization...")
+        #     # Set up visualization
+        #     progress_gui.set_distance_calculator(self.DistanceCalculator)
         
         d = {}
         losses = {}
         points_dict = {}
         for num_sutures in range(start_range, end_range): # This should be (0.8 * heuristic to 1.4 * heuristic)
-            print('NUM SUTURES: ', num_sutures)
+            print('TESTING NUM SUTURES: ', num_sutures)
             
             # Update progress GUI
-            if progress_gui:
-                progress_gui.update_current_sutures(num_sutures)
-                progress_gui.set_status(f"Optimizing placement for {num_sutures} sutures...")
+            _optFrame.update_cur_sutures(num_sutures)
+            # if progress_gui:
+            #     progress_gui.update_current_sutures(num_sutures)
+            #     progress_gui.set_status(f"Optimizing placement for {num_sutures} sutures...")
             
             d[num_sutures] = {}
             heuristic = num_sutures
@@ -134,11 +141,14 @@ class SuturePlacer:
             print('ideal loss', ideal_loss)
             
             # Update progress GUI with loss information
-            if progress_gui:
-                progress_gui.update_losses(best_loss, closure_loss, shear_loss, 
-                                         center_var_loss, ins_ext_var_loss, ideal_loss)
-                # Update visualization with current suture plan
-                progress_gui.update_visualization(ts, f"Optimized {num_sutures} Sutures")
+            _optFrame.update_losses(best_loss,closure_loss,shear_loss)
+            _optFrame.update_visualization(ts, f'Current Suture Plan Visualization: Optimized {num_sutures} Sutures')
+
+            # if progress_gui:
+            #     progress_gui.update_losses(best_loss, closure_loss, shear_loss, 
+            #                              center_var_loss, ins_ext_var_loss, ideal_loss)
+            #     # Update visualization with current suture plan
+            #     progress_gui.update_visualization(ts, f"Optimized {num_sutures} Sutures")
             
             d[num_sutures]['loss'] = best_loss
             d[num_sutures]['closure loss'] = closure_loss
@@ -170,9 +180,10 @@ class SuturePlacer:
             points_dict[num_sutures] = b_ts
 
         # Mark optimization as complete
-        if progress_gui:
-            progress_gui.mark_complete()
-            progress_gui.set_status("Optimization complete! Saving results...")
+        _optFrame.mark_complete()
+        # if progress_gui:
+        #     progress_gui.mark_complete()
+        #     progress_gui.set_status("Optimization complete! Saving results...")
 
         dict_to_csv(d, "clicked_losses")
         save_dict_to_file(points_dict, "clicked_points.txt")
