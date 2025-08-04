@@ -186,7 +186,7 @@ class OptFrame(ctk.CTkFrame):
         # plot suture points
         self.graph_ax.scatter([insert_pts[i][1] for i in range(num_pts)],[-insert_pts[i][0] for i in range(num_pts)],c='red',s=30,alpha=0.8,label='Insertion')
         self.graph_ax.scatter([extract_pts[i][1] for i in range(num_pts)],[-extract_pts[i][0] for i in range(num_pts)],c='blue',s=30,alpha=0.8,label='Extraction')
-        self.graph_ax.scatter([center_pts[i][1] for i in range(num_pts)],[-center_pts[i][0] for i in range(num_pts)],c='green',s=30,alpha=0.8,label='Center')
+        #self.graph_ax.scatter([center_pts[i][1] for i in range(num_pts)],[-center_pts[i][0] for i in range(num_pts)],c='green',s=30,alpha=0.8,label='Center')
 
         # draw suture lines on plot
         for i in range(len(insert_pts)):
@@ -245,7 +245,7 @@ class GUI(ctk.CTk):
         self.buttons_frame.grid_rowconfigure(0,weight=1)
 
         self.a_slider = ctk.CTkSlider(self.buttons_frame,from_=0, to=1,orientation='horizontal',width=150)
-        self.a_value = ctk.CTkLabel(self.buttons_frame, text=f'a = {round(self.a,2)}',font=('Arial',12))
+        self.a_value = ctk.CTkLabel(self.buttons_frame, text=f'Elliptical Minor Axis = {round(self.a,2)}\nIncreasing will relax distance between sutures.',font=('Arial',12))
         self.rerun_button = ctk.CTkButton(self.buttons_frame, text='Rerun Program', command=self.rerun, width=150, height=50, font=('Arial',17))
         self.end_program_button = ctk.CTkButton(self.buttons_frame, text='Close Program', command=self.on_close, width=150, height=50,font=('Arial',17))
 
@@ -256,7 +256,7 @@ class GUI(ctk.CTk):
     
     def slider_update(self,event):
         self.a = self.a_slider.get()
-        self.a_value.configure(text=f'a = {round(self.a,2)}')
+        self.a_value.configure(text=f'Elliptical Minor Axis = {round(self.a,2)}\nIncreasing will relax distance between sutures.')
 
     def on_image_click(self,event):
         x, y = event.x, event.y
@@ -402,7 +402,7 @@ class GUI(ctk.CTk):
         newSuturePlacer.tck = self.tck
         newSuturePlacer.DistanceCalculator.tck = self.tck
         newSuturePlacer.RewardFunction.a = self.a
-        self.a_value.configure(text=f'a = {round(self.a,2)}')
+        self.a_value.configure(text=f'Elliptical Minor Axis = {round(self.a,2)}\nIncreasing will relax distance between sutures.')
 
         newSuturePlacer.wound_parametric = wound_parametric
         newSuturePlacer.DistanceCalculator.wound_parametric = wound_parametric
@@ -433,20 +433,40 @@ class GUI(ctk.CTk):
         self.final_canvas.grid(row=4, column=0, padx=20, pady=20)
         
         self.image = Image.open(self.image_path).resize((600,400))
-        self.tk_image = ImageTk.PhotoImage(self.image)
+        
+        # make image more transparent to see sutures in final plan better
+        self.image = self.image.convert('RGBA')
+        alpha_factor = 0.6
+        transparent_image_data = []
+        for pixel in self.image.getdata():
+            if pixel[3] > 0:
+                new_alpha_factor = int(pixel[3] * alpha_factor)
+                transparent_image_data.append((pixel[0],pixel[1],pixel[2],new_alpha_factor))
+            else:
+                # if transparents already, keep it transparent
+                transparent_image_data.append(pixel)
+        adjusted_image = Image.new('RGBA',self.image.size)
+        adjusted_image.putdata(transparent_image_data)
+        #self.tk_image = ImageTk.PhotoImage(self.image)
+        self.tk_trans_image = ImageTk.PhotoImage(adjusted_image)
 
-        self.final_canvas.create_image(0,0,anchor=tk.NW,image=self.tk_image)
-        self.final_canvas.image = self.tk_image # keep reference to image
+        self.final_canvas.create_image(0,0,anchor=tk.NW,image=self.tk_trans_image)
+        self.final_canvas.image = self.tk_trans_image # keep reference to image
 
         # plot suture points
         r = 3
         for i in range(self.optFrame.num_pts):
-            self.final_canvas.create_oval(self.optFrame.insert_pts[i][0]-r,self.optFrame.insert_pts[i][1]-r,self.optFrame.insert_pts[i][0]+r,self.optFrame.insert_pts[i][1]+r,fill='red') #Insertion
-            self.final_canvas.create_oval(self.optFrame.extract_pts[i][0]-r,self.optFrame.extract_pts[i][1]-r,self.optFrame.extract_pts[i][0]+r,self.optFrame.extract_pts[i][1]+r,fill='blue') #Extraction
-            #self.final_canvas.create_oval(self.optFrame.center_pts[i][0]-r,self.optFrame.center_pts[i][1]-r,self.optFrame.center_pts[i][0]+r,self.optFrame.center_pts[i][1]+r,fill='green') #Center
-            self.final_canvas.create_line(self.optFrame.insert_pts[i][0],self.optFrame.insert_pts[i][1],self.optFrame.extract_pts[i][0],self.optFrame.extract_pts[i][1],fill='black',width=3)
+            # draw centerline
+            if i != 0:
+                self.final_canvas.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1)
 
-        self.suture_planner_text.configure(text='Final Optimized Suture Placement Plan')
+            # draw points and suture lines
+            self.final_canvas.create_oval(self.optFrame.insert_pts[i][0]-r,self.optFrame.insert_pts[i][1]-r,self.optFrame.insert_pts[i][0]+r,self.optFrame.insert_pts[i][1]+r,fill='red',outline='') #Insertion
+            self.final_canvas.create_oval(self.optFrame.extract_pts[i][0]-r,self.optFrame.extract_pts[i][1]-r,self.optFrame.extract_pts[i][0]+r,self.optFrame.extract_pts[i][1]+r,fill='blue',outline='') #Extraction
+            #self.final_canvas.create_oval(self.optFrame.center_pts[i][0]-r,self.optFrame.center_pts[i][1]-r,self.optFrame.center_pts[i][0]+r,self.optFrame.center_pts[i][1]+r,fill='green') #Center
+            self.final_canvas.create_line(self.optFrame.insert_pts[i][0],self.optFrame.insert_pts[i][1],self.optFrame.extract_pts[i][0],self.optFrame.extract_pts[i][1],fill='black',width=1.5)
+        
+        self.suture_planner_text.configure(text='- Final Optimized Suture Placement Plan -\nWe assume the wound skin is pulled together along the wound centerline during suturing.')
         self.buttons_frame.grid(row=100,column=0,padx=20,pady=10)
         self.a_slider.grid(row=0,column=0,padx=0,pady=10)
         self.a_slider.bind('<ButtonRelease-1>',self.slider_update)
