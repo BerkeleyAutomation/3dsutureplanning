@@ -25,7 +25,8 @@ class RewardFunction():
         self.wcp_ys = None
 
         # parameter for minor axis that can be tuned later
-        self.a = 0.5
+        # self.a = 0.5
+        self.a = 0.77
 
     # distance lists added to this object by SuturePlacer.
     # variance

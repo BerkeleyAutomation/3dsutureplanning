@@ -1,0 +1,8 @@
+{
+    "max_total_loss": 219129.7625031683,
+    "min_total_loss": 50766.967829708534,
+    "max_closure_loss": 8317.503707939552,
+    "min_closure_loss": 2522.1389975281686,
+    "max_shear_loss": 1.0417784938863899,
+    "min_shear_loss": 0.007154513565221704
+}
