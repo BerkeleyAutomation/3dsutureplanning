@@ -47,6 +47,10 @@ class OptFrame(ctk.CTkFrame):
         self.planned_extract_pts = []
         self.start_range = 0
         self.end_range = 0
+
+        self.total_array = []
+        self.closure_array = []
+        self.shear_array = []
         
         self.cur_visualization_data = None
         self.distance_calc = None
@@ -85,11 +89,25 @@ class OptFrame(ctk.CTkFrame):
         self.loss_frame.grid_columnconfigure(2,weight=1)
 
         self.total_loss_label = ctk.CTkLabel(self.loss_frame, text='Total Loss: --', font=('Arial', 17),justify='center', text_color='#003049')
-        self.total_loss_label.grid(row=0,column=1,padx=10,sticky='ew')
+        #self.total_loss_label.grid(row=0,column=1,padx=10,sticky='ew')
         self.closure_loss_label = ctk.CTkLabel(self.loss_frame, text='Closure Loss: --', font=('Arial',17),justify='center', text_color='#003049')
-        self.closure_loss_label.grid(row=1,column=1,padx=10,sticky='ew')
+        #self.closure_loss_label.grid(row=1,column=1,padx=10,sticky='ew')
         self.shear_loss_label = ctk.CTkLabel(self.loss_frame, text='Shear Loss: --', font=('Arial',17),justify='center', text_color='#003049')
-        self.shear_loss_label.grid(row=2,column=1,padx=10,sticky='ew')
+        #self.shear_loss_label.grid(row=2,column=1,padx=10,sticky='ew')
+
+        # loss plots
+        self.loss_plot_frame = ctk.CTkFrame(self.loss_frame,fg_color="#7dafce")
+        self.loss_plot_frame.grid(row=3, column=1,padx=10,sticky='ew')
+
+        self.loss_fig = Figure(figsize=(6,2), dpi=80)
+        self.total_ax = self.loss_fig.add_subplot(111)
+
+        self.loss_fig_canvas = FigureCanvasTkAgg(self.loss_fig, self.loss_plot_frame)
+        self.loss_fig_canvas.get_tk_widget().grid(row=0,column=0,padx=0,pady=0)
+
+        self.total_ax.text(0.5,0.5,'Waiting for loss...',ha='center',va='center',transform=self.total_ax.transAxes,fontsize=12)
+        self.total_ax.axis('off')
+        self.loss_fig_canvas.draw()
         
         # best result information
         self.best_frame = ctk.CTkFrame(self.infopanel,fg_color='#f8f9fa') #'#2fc986'
@@ -180,7 +198,23 @@ class OptFrame(ctk.CTkFrame):
             self.normalized_best_loss = normalized_total_loss
             self.best_sutures = self.cur_num_sutures
             self.best_label.configure(text=f'Best Result: {self.best_sutures} sutures - Loss: {self.normalized_best_loss:.2f}%')
+        
+        # plotting losses over tested num sutures
+        self.total_ax.clear()
+        loss_X = np.array(list(range(self.start_range, self.start_range+len(self.total_array))))
 
+        self.total_ax.plot(loss_X, np.array(self.total_array)/max(self.total_array), color='red',linewidth=1.5)
+        self.total_ax.plot(loss_X, np.array(self.closure_array)/max(self.closure_array), color='blue',linewidth=1.5)
+        self.total_ax.plot(loss_X, np.array(self.shear_array)/max(self.shear_array), color='black',linewidth=1.5)
+        self.total_ax.set_title('Total, Closure, and Shear Loss', fontsize=12)
+        self.total_ax.legend(["Total", "Closure", "Shear"], loc="lower left")
+        self.total_ax.grid(True,alpha=0.2)
+        self.total_ax.set_xlabel('# Sutures')
+        self.total_ax.set_ylabel('Loss')
+        self.total_ax.set_xticks(loss_X)
+
+        # # update canvas
+        self.loss_fig_canvas.draw()
         self.parent_root.update()
     
     def set_distance_calculator(self,distance_calculator):
@@ -265,18 +299,18 @@ class GUI(ctk.CTk):
         self.geometry('1300x840') #'750x750'
         self.grid_columnconfigure(0, weight=1)
 
-        copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
-        # copyr = ctk.CTkLabel(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', font=('Arial',15), text_color='#003049')
+        link_icon = Image.open("external_link.png")
+        self.link_image = ctk.CTkImage(link_icon, size=(15,15))
+        copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
         copyr.grid(row=0, column=0, padx=0, pady=0, sticky='ew')
 
         suture_planner_title = ctk.CTkLabel(self, text='Suture-It', font=('Arial Bold',50), fg_color='#7dafce', text_color='#003049')
         suture_planner_title.grid(row=1, column=0, padx=20, pady=10, sticky='ew')
 
         # autolab logo button
-        autolab_image = Image.open("logo.png")
-        self.company_image = ctk.CTkImage(autolab_image, size=(148,45))
+        autolab_image = Image.open("logo2.png")
+        self.company_image = ctk.CTkImage(autolab_image, size=(180,45)) #148,45
         self.suture_it_company = ctk.CTkButton(self, text='', image=self.company_image, compound='left', command=self.open_link, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
-        #self.suture_it_company = ctk.CTkButton(self, text='UC Berkeley AUTOLAB', font=('Arial',24,'bold'), command=self.open_link, fg_color="#f9db9f", text_color='#780000', hover_color="#fbe3b2")
         self.suture_it_company.grid(row=2, column=0, padx=5, pady=5)
 
         self.suture_planner_text = ctk.CTkLabel(self, text='Welcome to Suture-It. Upload a wound image to start!', font=('Arial',24), wraplength=700, text_color='#003049')
@@ -455,8 +489,43 @@ class GUI(ctk.CTk):
             print('No image selected. Exiting.')
             return
     
+    def extend_hernia(self, ordered_pts, max_dist_hernia):
+        extend_thresh = math.ceil((max_dist_hernia * 0.25) / 4)
+        
+        # extend end
+        vect = (ordered_pts[-1][0] - ordered_pts[-10][0], ordered_pts[-1][1] - ordered_pts[-10][1])
+        lenpts = math.sqrt((ordered_pts[-1][0] - ordered_pts[-2][0])**2 + (ordered_pts[-1][1] - ordered_pts[-2][1])**2)
+        new_pts = []
+        for d in np.arange(0.25, extend_thresh, 0.25):
+            #new_pt = (math.ceil(ordered_pts[-1][0] + ((d / lenpts) * vect[0])), math.ceil(ordered_pts[-1][1] + ((d / lenpts) * vect[1])))
+            new_pt = (ordered_pts[-1][0] + ((d / lenpts) * vect[0]), ordered_pts[-1][1] + ((d / lenpts) * vect[1]))
+            new_pts.append(new_pt)
+        for npts in new_pts:
+            ordered_pts.append(npts)
+            
+        # extend beginning
+        vect = (ordered_pts[0][0] - ordered_pts[10][0], ordered_pts[0][1] - ordered_pts[10][1])
+        lenpts = math.sqrt((ordered_pts[0][0] - ordered_pts[1][0])**2 + (ordered_pts[0][1] - ordered_pts[1][1])**2)
+        new_pts = []
+        for d in np.arange(0.25, extend_thresh, 0.25):
+            #new_pt = (math.ceil(ordered_pts[0][0] + ((d / lenpts) * vect[0])), math.ceil(ordered_pts[0][1] + ((d / lenpts) * vect[1])))
+            new_pt = (ordered_pts[0][0] + ((d / lenpts) * vect[0]), ordered_pts[0][1] + ((d / lenpts) * vect[1]))
+            new_pts.append(new_pt)
+        for npts in new_pts:
+            ordered_pts.insert(0,npts)
+            
+        print('new hernia centerline points added')
+        return ordered_pts
+    
     def compute_centerline(self):
-        ordered_pts, _, _ = EdgeDetector.img_to_line(self.image_path, self.wound_mask)
+        ordered_pts, _, _, max_dist_hernia = EdgeDetector.img_to_line(self.image_path, self.wound_mask)
+        
+        # hernia detection (wound width to centerline)
+        hernia_thresh = 25.0
+        if max_dist_hernia > hernia_thresh:
+            print('HERNIA type wound image. max dist: ' + str(max_dist_hernia))
+            # artificially extend centerline if wound is hernia type
+            ordered_pts = self.extend_hernia(ordered_pts, max_dist_hernia)
 
         self.x = [a[1] for a in ordered_pts]
         self.y = [a[0] for a in ordered_pts]
@@ -542,6 +611,8 @@ class GUI(ctk.CTk):
         self.plan_num_slider.grid_forget()
         self.plan_num_slider.unbind('<ButtonRelease-1>')
         self.plan_num_label.grid_forget()
+        self.max_label.grid_forget()
+        self.min_label.grid_forget()
         # self.a_slider.grid_forget()
         # self.a_slider.unbind('<ButtonRelease-1>')
         # self.a_value.grid_forget()
@@ -570,10 +641,13 @@ class GUI(ctk.CTk):
         cen_pts = self.optFrame.planned_center_pts[self.plan_num-self.start_range]
         ex_pts = self.optFrame.planned_extract_pts[self.plan_num-self.start_range]
         r = 3
+        print('\nDistances between sutures in suture plan:')
         for i in range(len(in_pts)):
             # draw centerline
-            if i != 0:
+            if i != 0: # create_line(x1, y1, x2, y2)
                 self.final_canvas.create_line(cen_pts[i][0],cen_pts[i][1],cen_pts[i-1][0],cen_pts[i-1][1],fill='green',width=1,tags='finalsutures')
+                d = math.sqrt(((cen_pts[i-1][0] - cen_pts[i][0])**2) + ((cen_pts[i-1][1] - cen_pts[i][1])**2))
+                print(str(i) + ': ' + str(d))
 
             # draw points and suture lines
             self.final_canvas.create_oval(in_pts[i][0]-r,in_pts[i][1]-r,in_pts[i][0]+r,in_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
@@ -631,6 +705,8 @@ class GUI(ctk.CTk):
             self.final_canvas.create_oval(self.optFrame.insert_pts[i][0]-r,self.optFrame.insert_pts[i][1]-r,self.optFrame.insert_pts[i][0]+r,self.optFrame.insert_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
             self.final_canvas.create_oval(self.optFrame.extract_pts[i][0]-r,self.optFrame.extract_pts[i][1]-r,self.optFrame.extract_pts[i][0]+r,self.optFrame.extract_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
             #self.final_canvas.create_oval(self.optFrame.center_pts[i][0]-r,self.optFrame.center_pts[i][1]-r,self.optFrame.center_pts[i][0]+r,self.optFrame.center_pts[i][1]+r,fill='green') #Center
+            #scale = 1
+            #if self.wound_mask[self.optFrame.insert_pts[i][1],self.optFrame.insert_pts[i][0]] == 255:
             self.final_canvas.create_line(self.optFrame.insert_pts[i][0],self.optFrame.insert_pts[i][1],self.optFrame.extract_pts[i][0],self.optFrame.extract_pts[i][1],fill='black',width=1.5,tags='finalsutures')
 
         self.suture_planner_text.configure(text='- Optimized Suture Placement Plan -\nWound skin is pulled together along centerline before suturing.')

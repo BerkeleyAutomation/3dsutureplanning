@@ -1,7 +1,7 @@
 from PIL import Image
 import cv2
 import numpy as np
-from skimage.morphology import skeletonize
+from skimage.morphology import skeletonize, medial_axis
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import scipy.interpolate as inter
@@ -62,6 +62,11 @@ def img_to_line(img_path, original_mask):
     # threshold to feed into skeletonize
     binary_image = np.where(img_dilated > 0, 1, 0)
     skeleton = skeletonize(binary_image)
+
+    # hernia detection
+    skel, distance = medial_axis(binary_image, return_distance=True)
+    dist_on_skel = distance * skel
+    max_dist_hernia = np.max(dist_on_skel)
 
     np.save('temp_images/binary_skeleton.npy', skeleton)
 
@@ -124,7 +129,7 @@ def img_to_line(img_path, original_mask):
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
     
-    return ordered_points, numpydata, border_pts_gaps_filled
+    return ordered_points, numpydata, border_pts_gaps_filled, max_dist_hernia
 
 def line_to_spline(line, img_path, mm_per_pixel, viz=False):
 
@@ -211,7 +216,7 @@ if __name__ == "__main__":
     for i in [7]:
         img_path = f'chicken_images/image_left_00{i}.png'
 
-        line, mask, _ = img_to_line(img_path, box_method, i, viz=True)
+        line, mask, _, _ = img_to_line(img_path, box_method, i, viz=True)
 
     #spline, tck = line_to_spline(line, img_path, viz=True)
 

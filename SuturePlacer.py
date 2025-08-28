@@ -174,6 +174,11 @@ class SuturePlacer:
             # print('center var loss', center_var_loss)
             # print('InsExt var loss', ins_ext_var_loss)
             # print('ideal loss', ideal_loss)
+
+            # save all losses for later plotting
+            _optFrame.total_array.append(best_loss)
+            _optFrame.closure_array.append(closure_loss)
+            _optFrame.shear_array.append(shear_loss)
             
             # Update progress GUI with loss information
             _optFrame.update_losses(best_loss,closure_loss,shear_loss)
