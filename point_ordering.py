@@ -111,7 +111,7 @@ def get_pt_ordering(skeleton_mask, viz=False):
         plt.scatter([prev_layer[0][0]], [prev_layer[0][1]])
         plt.show()
 
-    return finalLine
+    return finalLine, nonzero_pts
 
 
 # Karim's DFS code

@@ -62,11 +62,13 @@ def img_to_line(img_path, original_mask):
     # threshold to feed into skeletonize
     binary_image = np.where(img_dilated > 0, 1, 0)
     skeleton = skeletonize(binary_image)
+    #print('skeleton shape: ' + str(skeleton))
 
     # hernia detection
     skel, distance = medial_axis(binary_image, return_distance=True)
     dist_on_skel = distance * skel
     max_dist_hernia = np.max(dist_on_skel)
+    #print('dist_on_skel shape: ' + str(dist_on_skel))
 
     np.save('temp_images/binary_skeleton.npy', skeleton)
 
@@ -77,7 +79,15 @@ def img_to_line(img_path, original_mask):
     plt.imsave('temp_images/skeleton_sam.jpg', skeleton)
 
     # order points 
-    ordered_points = get_pt_ordering(skeleton)
+    #ordered_points = get_pt_ordering(skeleton)
+    ordered_points, nonzero_pts = get_pt_ordering(skel)
+    ordered_points_dist = []
+    for npt in nonzero_pts:
+        ordered_points_dist.append((npt[0][1],npt[0][0],dist_on_skel[npt[0][1]][npt[0][0]]))
+    # print('ordered points: ')
+    # print(ordered_points)
+    # print('ordered_points_dist: ')
+    # print(ordered_points_dist)
 
     filled_holes = Image.open("temp_images/sam_mask.jpg")
     numpydata = np.asarray(filled_holes)
@@ -129,7 +139,7 @@ def img_to_line(img_path, original_mask):
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
     
-    return ordered_points, numpydata, border_pts_gaps_filled, max_dist_hernia
+    return ordered_points, numpydata, border_pts_gaps_filled, max_dist_hernia, ordered_points_dist
 
 def line_to_spline(line, img_path, mm_per_pixel, viz=False):
 

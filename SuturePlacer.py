@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from datetime import datetime
 import os
+import math
 
 
 class SuturePlacer:
@@ -138,6 +139,38 @@ class SuturePlacer:
             _optFrame.planned_insert_pts.append(insert_pts)
             _optFrame.planned_center_pts.append(center_pts)
             _optFrame.planned_extract_pts.append(extract_pts)
+
+            # adaptive length sutures
+            dists_to_wound = []
+            for cpt in center_pts:
+                min_dist = 10000
+                scale_len = 0
+                #find point in centerline that is closest to center point, save distance to outside of wound
+                for opt in _optFrame.parent_root.ordered_pts_dist:
+                    temp_dist = math.sqrt((opt[0]-cpt[1])**2 + (opt[1]-cpt[0])**2)
+                    if temp_dist < min_dist:
+                        min_dist = temp_dist
+                        scale_len = opt[2]
+                dists_to_wound.append(scale_len)
+
+            def extend_sutures(insert_pts, extract_pts, center_pts, dists_to_wound):
+                n_insert_pts = []
+                n_extract_pts = []
+                for i in range(len(center_pts)):
+                    vect = (extract_pts[i][0]-insert_pts[i][0], extract_pts[i][1]-insert_pts[i][1])
+                    scale_factor = dists_to_wound[i]*0.1
+                    if scale_factor < 1.0:
+                        scale_factor = 1.0
+                    new_pt = (insert_pts[i][0] + ((scale_factor) * vect[0]), insert_pts[i][1] + ((scale_factor) * vect[1]))
+                    n_insert_pts.append(new_pt)
+                    new_pt = (extract_pts[i][0] - ((scale_factor) * vect[0]), extract_pts[i][1] - ((scale_factor) * vect[1]))
+                    n_extract_pts.append(new_pt)
+                
+                return n_extract_pts, n_insert_pts
+            
+            n_insert_pts, n_extract_pts = extend_sutures(insert_pts, extract_pts, center_pts, dists_to_wound)
+            _optFrame.planned_n_insert_pts.append(n_insert_pts)
+            _optFrame.planned_n_extract_pts.append(n_extract_pts)
 
             # continuous progress bar
             self.progress += self.progress_incre
