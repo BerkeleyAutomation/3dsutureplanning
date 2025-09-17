@@ -358,7 +358,15 @@ class GUI(ctk.CTk):
         self.suture_planner_text.grid(row=3, column=0, padx=20, pady=10)
 
         self.disclaimer = ctk.CTkLabel(self, text='Disclaimer:\nIn its current stage, Suture-It does not consider factors such as:\n   - Potential skin deformations during implementation\n   - Dynamic skin surface and patient movement during procedure\n   - Differences in equipment materials (needle, thread, etc.)\n   - Depth/3D conceptualization of wound\n\nWe recognize future work that could complement the current program:\n   - Dynamic adjustments to suture plan during suturing\n   - Projection of suture plan onto wound for real-time guidance', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
-        self.disclaimer.grid(row=4, column=0, padx=20, pady=20)
+        self.disclaimer.grid(row=4, column=0, padx=20, pady=10)
+
+        results_image = Image.open("resulting_sutures.png")
+        self.results_img = ctk.CTkImage(results_image, size=(835,300)) #2444 × 878
+        self.results_fig = ctk.CTkLabel(self, text="", image=self.results_img)
+        self.results_fig.grid(row=5, column=0, padx=20, pady=0)
+
+        self.results_cap = ctk.CTkLabel(self, text='Example Suture-It Results',font=('Arial',17), wraplength=700, text_color='#003049')
+        #self.results_cap.grid(row=6, column=0, padx=20, pady=10)
 
         self.upload_image_button = ctk.CTkButton(self, text='Upload Wound Image', command=self.upload_image, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
@@ -514,6 +522,8 @@ class GUI(ctk.CTk):
     def upload_image(self):
         image_path = filedialog.askopenfilename(title='Select an Image', filetypes=[('Image Files','*.jpg *.jpeg *.png *.bmp *.tiff *.gif')])
         self.disclaimer.grid_forget()
+        self.results_fig.grid_forget()
+        #self.results_cap.grid_forget()
         
         if image_path:
             self.image_path = image_path
@@ -671,6 +681,8 @@ class GUI(ctk.CTk):
 
         self.suture_planner_text.configure(text='Welcome to Suture-It. Upload a wound image to start!')
         self.disclaimer.grid(row=4, column=0, padx=20, pady=20)
+        self.results_fig.grid(row=5, column=0, padx=20, pady=0)
+        #self.results_cap.grid(row=6, column=0, padx=20, pady=10)
         self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
 
         # self.scale_pts = []
@@ -729,16 +741,16 @@ class GUI(ctk.CTk):
 
         # transparent image with suture plan
         self.final_canvas = ctk.CTkCanvas(self.final_canvas_frame, width=600, height=400, bg='#f8f9fa', highlightthickness=0)
-        self.final_canvas.grid(row=0, column=0, padx=5, pady=0)
+        self.final_canvas.grid(row=0, column=1, padx=5, pady=0)
 
         # transparent image with adaptive suture plan
         self.final_canvas_ad = ctk.CTkCanvas(self.final_canvas_frame, width=600, height=400, bg='#f8f9fa', highlightthickness=0)
-        self.final_canvas_ad.grid(row=0, column=1, padx=5, pady=0)
+        self.final_canvas_ad.grid(row=0, column=0, padx=5, pady=0)
 
-        self.final_canvas_cap = ctk.CTkLabel(self.final_canvas_frame, text='Uniform length sutures along center line', font=('Arial',17), wraplength=600, text_color='#003049')
-        self.final_canvas_ad_cap = ctk.CTkLabel(self.final_canvas_frame, text='Adaptive length sutures to show insert/extract points on skin', font=('Arial',17), wraplength=600, text_color='#003049')
-        self.final_canvas_cap.grid(row=1, column=0, padx=5, pady=0)
-        self.final_canvas_ad_cap.grid(row=1, column=1, padx=5, pady=0)
+        self.final_canvas_cap = ctk.CTkLabel(self.final_canvas_frame, text='Uniform length sutures along centerline of simulated closed wound', font=('Arial',17), wraplength=600, text_color='#003049')
+        self.final_canvas_ad_cap = ctk.CTkLabel(self.final_canvas_frame, text='Variable length sutures showing insert/extract points on open wound skin', font=('Arial',17), wraplength=600, text_color='#003049')
+        self.final_canvas_cap.grid(row=1, column=1, padx=5, pady=0)
+        self.final_canvas_ad_cap.grid(row=1, column=0, padx=5, pady=0)
 
         self.image = Image.open(self.image_path).resize((600,400))
         
@@ -769,8 +781,8 @@ class GUI(ctk.CTk):
         for i in range(self.optFrame.num_pts):
             # draw centerline
             if i != 0:
-                self.final_canvas.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1,tags='finalsutures')
-                self.final_canvas_ad.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1,tags='finalsutures')
+                self.final_canvas.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1.5,tags='finalsutures')
+                self.final_canvas_ad.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1.5,tags='finalsutures')
 
             # draw points and suture lines
             self.final_canvas.create_oval(self.optFrame.insert_pts[i][0]-r,self.optFrame.insert_pts[i][1]-r,self.optFrame.insert_pts[i][0]+r,self.optFrame.insert_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
