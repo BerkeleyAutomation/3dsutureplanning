@@ -13,10 +13,11 @@ import math
 
 
 class SuturePlacer:
-    def __init__(self, wound_width, mm_per_pixel):
+    def __init__(self, wound_width, mm_per_pixel, sampled_spline_pts):
         # This object should contain the optimizer, the spline curve, the image, etc., i.e. all of the relevant objects involved, as attributes.
         self.wound_width = wound_width
         self.mm_per_pixel = mm_per_pixel
+        self.sampled_spline_pts = sampled_spline_pts
         self.DistanceCalculator = DistanceCalculator.DistanceCalculator(self, self.wound_width, self.mm_per_pixel)
         self.RewardFunction = RewardFunction.RewardFunction(wound_width, self)
         self.Constraints = Constraints.Constraints(wound_width)
@@ -33,6 +34,84 @@ class SuturePlacer:
         self.c_lossVarInsExt = 6
         self.c_lossClosure = 15
         self.c_lossShear = 5
+
+    def compute_curvature_points(self, spline_pts, percentile=85):
+        """
+        Compute curvature along a series of points and return high-curvature indices.
+
+        spline_pts: list of (x,y) wound points (from sampled spline)
+        percentile: threshold percentile to select high-curvature points
+
+        Returns: list of indices of high-curvature points
+        """
+        pts = np.array(spline_pts)
+        x = pts[:, 0]
+        y = pts[:, 1]
+
+        # compute first and second derivatives
+        dx = np.gradient(x)
+        dy = np.gradient(y)
+        ddx = np.gradient(dx)
+        ddy = np.gradient(dy)
+
+        # curvature formula
+        curvature = np.abs(dx*ddy - dy*ddx) / (dx**2 + dy**2)**1.5
+        curvature = np.nan_to_num(curvature)  # remove NaNs
+
+        # pick indices above threshold
+        threshold = np.percentile(curvature, percentile)
+        high_curv_idx = np.where(curvature >= threshold)[0]
+
+        # always include endpoints
+        high_curv_idx = np.unique(np.concatenate(([0], high_curv_idx, [len(spline_pts)-1])))
+
+        return high_curv_idx
+
+    def segment_along_curve(self, spline_pts, high_curv_idx, base_num_between=3, scale_factor=0.05):
+        """
+        Generate suture points along the curve between high-curvature points.
+
+        spline_pts: list of (x,y)
+        high_curv_idx: list of indices
+        base_num_between: minimum points between high-curvature points
+        scale_factor: fraction of distance to determine additional points
+
+        Returns: list of suture points along the wound
+        """
+        pts = np.array(spline_pts)
+        suture_pts = []
+
+        for i in range(len(high_curv_idx)-1):
+            start_idx = high_curv_idx[i]
+            end_idx = high_curv_idx[i+1]
+
+            segment_pts = pts[start_idx:end_idx+1]  # slice of points along the curve
+            # compute distance along segment to determine sampling
+            distances = np.linalg.norm(np.diff(segment_pts, axis=0), axis=1)
+            cum_dist = np.insert(np.cumsum(distances), 0, 0)
+            total_dist = cum_dist[-1]
+
+            # determine number of points along this segment
+            num_between = max(base_num_between, int(total_dist * scale_factor))
+
+            # resample points along cumulative distance
+            sample_dist = np.linspace(0, total_dist, num_between+2)[:-1]  # skip last to avoid duplicate
+            interp_pts = []
+
+            for d in sample_dist:
+                # find which interval d is in
+                idx = np.searchsorted(cum_dist, d) - 1
+                if idx >= len(segment_pts)-1:
+                    idx = len(segment_pts)-2
+                t = (d - cum_dist[idx]) / (cum_dist[idx+1] - cum_dist[idx])
+                new_pt = (segment_pts[idx]*(1-t) + segment_pts[idx+1]*t)
+                interp_pts.append(tuple(new_pt))
+
+            suture_pts.extend(interp_pts)
+
+        # add last high-curvature point
+        suture_pts.append(tuple(pts[high_curv_idx[-1]]))
+        return suture_pts
 
     def optimize(self, wound_points,optFrame):
         insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts = self.DistanceCalculator.calculate_distances(wound_points)
@@ -94,7 +173,7 @@ class SuturePlacer:
         # if save_figs:
         #     if not os.path.isdir("clicking"):
         #         os.mkdir('clicking')
-            
+        #
         #     now = datetime.now()
         #     # dd/mm/YY H:M:S
         #     dt_string = now.strftime("%d-%m-%Y-%H-%M-%S")
@@ -204,9 +283,6 @@ class SuturePlacer:
             print('loss: ', best_loss)
             print('closure loss', closure_loss)
             print('shear loss', shear_loss)
-            # print('center var loss', center_var_loss)
-            # print('InsExt var loss', ins_ext_var_loss)
-            # print('ideal loss', ideal_loss)
 
             # save all losses for later plotting
             _optFrame.total_array.append(best_loss)
@@ -215,7 +291,6 @@ class SuturePlacer:
             
             # Update progress GUI with loss information
             _optFrame.update_losses(best_loss,closure_loss,shear_loss)
-            # _optFrame.update_visualization(ts, f'Suture Plan: Optimized {num_sutures} Sutures')
             _optFrame.update_visualization(ts, f'Suture Plan: {num_sutures} Sutures')
 
             d[num_sutures]['loss'] = best_loss
@@ -226,7 +301,7 @@ class SuturePlacer:
             d[num_sutures]['ideal loss'] = ideal_loss
             b_insert_pts, b_center_pts, b_extract_pts, b_ts = insert_pts, center_pts, extract_pts, ts
             losses[best_loss] = num_sutures
-     
+    
             self.insert_pts = b_insert_pts
             self.center_pts = b_center_pts
             self.extract_pts = b_extract_pts
@@ -237,14 +312,6 @@ class SuturePlacer:
                 self.b_center_pts = b_center_pts
                 self.b_extract_pts = b_extract_pts
 
-            # print(losses)
-
-            # if save_figs:
-            
-            #     self.DistanceCalculator.plot(b_ts, "Number of Sutures: " + str(num_sutures) + ". Total loss: " + str(best_loss), save_fig=str(num_sutures), plot_type='sutures',save_dir='clicking/'+dt_string)
-            #     self.DistanceCalculator.plot(b_ts, "Closure force for " + str(num_sutures) + " sutures", save_fig= str(num_sutures), plot_type='closure', save_dir='clicking/'+dt_string)
-            #     self.DistanceCalculator.plot(b_ts, "Shear force for " + str(num_sutures) + " sutures", save_fig=str(num_sutures), plot_type='shear', save_dir='clicking/'+dt_string)
-
             points_dict[num_sutures] = b_ts
 
         # Mark optimization as complete
@@ -253,6 +320,7 @@ class SuturePlacer:
         dict_to_csv(d, "clicked_losses")
         save_dict_to_file(points_dict, "clicked_points.txt")
         return b_insert_pts, b_center_pts, b_extract_pts
+
 
 def save_dict_to_file(dic, filename):
     f = open(filename,'w')
