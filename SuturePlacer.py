@@ -35,83 +35,100 @@ class SuturePlacer:
         self.c_lossClosure = 15
         self.c_lossShear = 5
 
-    def compute_curvature_points(self, spline_pts, percentile=85):
+    def compute_curvature_points(self, spline_pts, radius=10, min_curvature=0.001):
         """
-        Compute curvature along a series of points and return high-curvature indices.
+        Step 1: Find local maxima of curvature
+        Step 2: Suppress peaks within `radius` (arc length in pixels)
 
-        spline_pts: list of (x,y) wound points (from sampled spline)
-        percentile: threshold percentile to select high-curvature points
-
-        Returns: list of indices of high-curvature points
+        spline_pts: list of (x, y) wound points
+        radius: minimum spacing between selected peaks (in pixels)
+        min_curvature: filter out weak/noisy peaks
         """
         pts = np.array(spline_pts)
         x = pts[:, 0]
         y = pts[:, 1]
 
-        # compute first and second derivatives
+        # compute curvature
         dx = np.gradient(x)
         dy = np.gradient(y)
         ddx = np.gradient(dx)
         ddy = np.gradient(dy)
+        curvature = np.abs(dx * ddy - dy * ddx) / (dx**2 + dy**2)**1.5
+        curvature = np.nan_to_num(curvature)
 
-        # curvature formula
-        curvature = np.abs(dx*ddy - dy*ddx) / (dx**2 + dy**2)**1.5
-        curvature = np.nan_to_num(curvature)  # remove NaNs
+        # step 1: candidate local maxima
+        candidates = []
+        for i in range(1, len(curvature) - 1):
+            if curvature[i] > curvature[i-1] and curvature[i] > curvature[i+1]:
+                if curvature[i] >= min_curvature:
+                    candidates.append((i, curvature[i]))
 
-        # pick indices above threshold
-        threshold = np.percentile(curvature, percentile)
-        high_curv_idx = np.where(curvature >= threshold)[0]
+        # sort by curvature strength (strongest first)
+        candidates.sort(key=lambda x: -x[1])
 
-        # always include endpoints
-        high_curv_idx = np.unique(np.concatenate(([0], high_curv_idx, [len(spline_pts)-1])))
+        # step 2: radius suppression (non-max suppression) 
+        selected = []
+        for idx, strength in candidates:
+            if not selected:
+                selected.append(idx)
+            else:
+                # distance from this candidate to already selected ones
+                dists = [np.linalg.norm(pts[idx] - pts[j]) for j in selected]
+                if min(dists) >= radius:
+                    selected.append(idx)
 
-        return high_curv_idx
+        # always include wound endpoints
+        selected.extend([0, len(spline_pts)-1])
 
-    def segment_along_curve(self, spline_pts, high_curv_idx, base_num_between=3, scale_factor=0.05):
+        return np.unique(selected)
+
+
+    def segment_along_curve(self, spline_pts, high_curv_idx, scale_factor=0.05):
         """
         Generate suture points along the curve between high-curvature points.
 
         spline_pts: list of (x,y)
         high_curv_idx: list of indices
-        base_num_between: minimum points between high-curvature points
-        scale_factor: fraction of distance to determine additional points
+        scale_factor: fraction of distance to determine number of points
 
         Returns: list of suture points along the wound
         """
         pts = np.array(spline_pts)
         suture_pts = []
 
-        for i in range(len(high_curv_idx)-1):
+        for i in range(len(high_curv_idx) - 1):
             start_idx = high_curv_idx[i]
-            end_idx = high_curv_idx[i+1]
+            end_idx = high_curv_idx[i + 1]
 
-            segment_pts = pts[start_idx:end_idx+1]  # slice of points along the curve
-            # compute distance along segment to determine sampling
+            segment_pts = pts[start_idx:end_idx + 1]
             distances = np.linalg.norm(np.diff(segment_pts, axis=0), axis=1)
             cum_dist = np.insert(np.cumsum(distances), 0, 0)
             total_dist = cum_dist[-1]
 
-            # determine number of points along this segment
-            num_between = max(base_num_between, int(total_dist * scale_factor))
+            # determine number of sutures proportional to segment length
+            num_between = int(total_dist * scale_factor)
 
-            # resample points along cumulative distance
-            sample_dist = np.linspace(0, total_dist, num_between+2)[:-1]  # skip last to avoid duplicate
+            # ensure at least 1 if segment has nonzero length
+            if num_between < 1 and total_dist > 0:
+                num_between = 1
+
+            sample_dist = np.linspace(0, total_dist, num_between + 2)[:-1]
             interp_pts = []
 
             for d in sample_dist:
-                # find which interval d is in
                 idx = np.searchsorted(cum_dist, d) - 1
-                if idx >= len(segment_pts)-1:
-                    idx = len(segment_pts)-2
-                t = (d - cum_dist[idx]) / (cum_dist[idx+1] - cum_dist[idx])
-                new_pt = (segment_pts[idx]*(1-t) + segment_pts[idx+1]*t)
+                if idx >= len(segment_pts) - 1:
+                    idx = len(segment_pts) - 2
+                t = (d - cum_dist[idx]) / (cum_dist[idx + 1] - cum_dist[idx])
+                new_pt = (segment_pts[idx] * (1 - t) + segment_pts[idx + 1] * t)
                 interp_pts.append(tuple(new_pt))
 
             suture_pts.extend(interp_pts)
 
-        # add last high-curvature point
+        # always include the last high-curvature point
         suture_pts.append(tuple(pts[high_curv_idx[-1]]))
         return suture_pts
+
 
     def optimize(self, wound_points,optFrame):
         insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts = self.DistanceCalculator.calculate_distances(wound_points)
