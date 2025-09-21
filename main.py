@@ -3,7 +3,7 @@ import customtkinter as ctk
 from tkinter import filedialog
 import scipy.interpolate as inter
 from SuturePlacer import SuturePlacer
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import webbrowser
@@ -17,11 +17,19 @@ import cv2
 import math
 from PIL import Image, ImageTk, ImageDraw
 import json
+from sklearn.cluster import DBSCAN
 
 import tkinter as tk
 
 import EdgeDetector
 from PIL import Image
+
+from matplotlib.collections import LineCollection
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
 
 # import threading
 # import time
@@ -387,6 +395,7 @@ class GUI(ctk.CTk):
         self.suture_drawn_button = ctk.CTkButton(self, text='Done!', command=self.suture_drawn, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.mask_generated = ctk.CTkButton(self, text='Compute Wound Centerline', command=self.compute_centerline, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.start_opt = ctk.CTkButton(self, text='Start Suture Planning', command=self.optimization, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+        self.view_curvature = ctk.CTkButton(self, text='Continue Setup', command=self.compute_curvature, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.see_final_opt = ctk.CTkButton(self, text='View Optimized Suture Plan', command=self.view_final, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         
         self.buttons_frame = ctk.CTkFrame(self, fg_color='#f8f9fa')
@@ -404,6 +413,10 @@ class GUI(ctk.CTk):
         self.rerun_button = ctk.CTkButton(self.buttons_frame, text='Rerun Suture-It', command=self.rerun, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.restart_button = ctk.CTkButton(self.buttons_frame, text='Restart Suture-It', command=self.restart, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.end_program_button = ctk.CTkButton(self.buttons_frame, text='Close Program', command=self.on_close, width=150, height=50,font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+
+        self.use_curvature = ctk.StringVar(value="off")
+        self.curvature_switch = ctk.CTkSwitch(self, text="Consider high curvature points in optimization",variable=self.use_curvature, onvalue="on", offvalue="off")
+
 
     def on_close(self):
         #self.destroy()
@@ -601,11 +614,14 @@ class GUI(ctk.CTk):
 
         self.mask_generated.grid_forget()
         self.suture_planner_text.configure(text='Wound centerline is displayed in red. Press the button below to begin suture planning.')
-        self.start_opt.grid(row=100, column=0, padx=20, pady=20)
+        
+        self.view_curvature.grid(row=100, column=0, padx=20, pady=20)
     
     def optimization(self):
         print('Starting Optimization')
+
         self.start_opt.grid_forget()
+        self.curvature_switch.grid_forget()
         self.image_canvas.destroy()
         self.suture_planner_text.configure(text='Running Suture Placement Optimization!')
 
@@ -658,6 +674,7 @@ class GUI(ctk.CTk):
         self.end_program_button.grid_forget()
         self.restart_button.grid_forget()
         self.buttons_frame.grid_forget()
+        self.curvature_switch.grid_forget()
         self.optimization()
 
     def restart(self):
@@ -678,6 +695,7 @@ class GUI(ctk.CTk):
         self.restart_button.grid_forget()
         self.buttons_frame.grid_forget()
         self.slider_frame.grid_forget()
+        self.curvature_switch.grid_forget()
 
         self.suture_planner_text.configure(text='Welcome to Suture-It. Upload a wound image to start!')
         self.disclaimer.grid(row=4, column=0, padx=20, pady=20)
@@ -819,7 +837,88 @@ class GUI(ctk.CTk):
         # self.rerun_button.grid(row=0, column=1, padx=20, pady=10)
         self.restart_button.grid(row=0, column=1, padx=40, pady=5)
         self.end_program_button.grid(row=1, column=1, padx=40, pady=0)
+    
+    def compute_curvature(self):
+        self.view_curvature.grid_forget()
+        self.curvature_switch.grid_forget()
+        self.image_canvas.delete("all")
+        self.suture_planner_text.configure(text='High Curvature Points')
 
+        # compute curvature
+        points = np.linspace(0, 1, 1000)
+        x_spline, y_spline = inter.splev(points, self.tck)
+        curvature = self.curvature(points=points)
+
+        cmap = LinearSegmentedColormap.from_list("white_red", ["#ffffff", "#ff69b4", "#ff0000"])
+        norm = mcolors.Normalize(vmin=np.min(curvature), vmax=np.max(curvature))
+        sm = ScalarMappable(norm=norm, cmap=cmap)
+        base_image = self.image.convert("RGB")
+        draw = ImageDraw.Draw(base_image)
+
+        # draw colored spline with curvature
+        for i in range(len(x_spline) - 1):
+            x0, y0 = x_spline[i], y_spline[i]
+            x1, y1 = x_spline[i + 1], y_spline[i + 1]
+            color = sm.to_rgba(curvature[i])[:3]
+            rgb_color = tuple(int(255 * c) for c in color)
+            draw.line([(x0, y0), (x1, y1)], fill=rgb_color, width=3)
+
+        # plot clustered points
+        centroids = self.get_curvature_centroids(x_spline, y_spline, curvature)
+        for c in centroids:
+            cx, cy = c[0], c[1]
+            draw.ellipse((cx-4, cy-4, cx+4, cy+4), fill='yellow')
+        
+        self.tk_image = ImageTk.PhotoImage(base_image)
+        self.image_canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
+        self.image_canvas.image = self.tk_image
+
+        self.curvature_switch.grid(row=90, column=0, padx=20, pady=20)
+        self.start_opt.grid(row=100, column=0, padx=20, pady=20)
+
+    def get_curvature_centroids(self, x_spline, y_spline, curvature, percentile=90, eps=10, min_samples=2):
+        high_curv_mask = curvature > np.percentile(curvature, 90)
+        coords = np.vstack([x_spline, y_spline]).T
+        high_curv_points = coords[high_curv_mask]
+
+        if len(high_curv_points) == 0:
+            return []
+
+        dbscan = DBSCAN(eps=10, min_samples=2)
+        labels = dbscan.fit_predict(high_curv_points)
+        unique_labels = set(labels)
+        centroids = []
+        for label in unique_labels:
+            if label == -1:
+                continue
+            cluster_pts = high_curv_points[labels == label]
+            centroid = np.mean(cluster_pts, axis=0)
+            centroids.append(tuple(centroid))  # (x, y)
+        return centroids
+    
+    def curvature(self, points):
+        first_deriv = inter.splev(points, self.tck, der=1)
+        second_deriv = inter.splev(points, self.tck, der=2)
+        dx_dt = first_deriv[0]
+        dy_dt = first_deriv[1]
+        d2x_dt2 = second_deriv[0]
+        d2y_dt2 = second_deriv[1]
+
+        curvature = []
+        for i in range(len(points)):
+            numerator = abs(dx_dt[i] * d2y_dt2[i] - dy_dt[i] * d2x_dt2[i])
+            denominator = (dx_dt[i]**2 + dy_dt[i]**2)**(3/2)
+            
+            if denominator > 1e-10:  # Avoid division by zero
+                k = numerator / denominator
+            else:
+                k = 0
+            curvature.append(k)
+        
+        curvature = np.array(curvature)
+        self.curvature_values = curvature
+        return curvature
+    
 if __name__ == '__main__':
     app = GUI()
     app.configure(fg_color="#f8f9fa")
