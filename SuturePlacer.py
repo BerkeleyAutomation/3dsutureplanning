@@ -13,13 +13,13 @@ import math
 
 
 class SuturePlacer:
-    def __init__(self, wound_width, mm_per_pixel):
+    def __init__(self, wound_width, mm_per_pixel, centroids=None):
         # This object should contain the optimizer, the spline curve, the image, etc., i.e. all of the relevant objects involved, as attributes.
         self.wound_width = wound_width
         self.mm_per_pixel = mm_per_pixel
         self.DistanceCalculator = DistanceCalculator.DistanceCalculator(self, self.wound_width, self.mm_per_pixel)
         self.RewardFunction = RewardFunction.RewardFunction(wound_width, self)
-        self.Constraints = Constraints.Constraints(wound_width)
+        self.Constraints = Constraints.Constraints(wound_width, centroids=centroids)
         self.Constraints.DistanceCalculator = self.DistanceCalculator
 
         self.b_insert_pts = []
@@ -34,7 +34,7 @@ class SuturePlacer:
         self.c_lossClosure = 15
         self.c_lossShear = 5
 
-    def optimize(self, wound_points,optFrame):
+    def optimize(self, wound_points, optFrame):
         insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts = self.DistanceCalculator.calculate_distances(wound_points)
         self.RewardFunction.insert_dists = insert_dists
         self.RewardFunction.center_dists = center_dists
@@ -121,6 +121,7 @@ class SuturePlacer:
         self.progress_incre = (1 / (end_range - start_range + 1)) / 10
         _optFrame.start_range = start_range
         _optFrame.end_range = end_range
+        _optFrame.final_suture_colors = {}
         for num_sutures in range(start_range, end_range): # This should be (0.8 * heuristic to 1.4 * heuristic)
             print('TESTING NUM SUTURES: ', num_sutures)
             
@@ -134,6 +135,12 @@ class SuturePlacer:
             wound_points = np.linspace(0, 1, num_sutures)
             
             insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts, ts = self.optimize(wound_points=wound_points,optFrame=_optFrame)
+            
+            final_suture_colors = ['black'] * num_sutures
+            closest_sutures = self.Constraints.get_closest_suture(ts)
+            for i in closest_sutures:
+                final_suture_colors[i] = 'yellow'
+            _optFrame.final_suture_colors[num_sutures] = final_suture_colors
 
             # save all suture plans for later mapping
             _optFrame.planned_insert_pts.append(insert_pts)

@@ -638,7 +638,9 @@ class GUI(ctk.CTk):
         mm_per_pixel = real_dist / pixel_dist
         wound_parametric = lambda t,d: inter.splev(t,self.tck,der=d)
 
-        newSuturePlacer = SuturePlacer(wound_width,mm_per_pixel)
+        if self.use_curvature.get() == 'off':
+            self.centroids = None
+        newSuturePlacer = SuturePlacer(wound_width,mm_per_pixel,centroids=self.centroids)
         newSuturePlacer.tck = self.tck
         newSuturePlacer.DistanceCalculator.tck = self.tck
         newSuturePlacer.RewardFunction.a = self.a
@@ -732,16 +734,17 @@ class GUI(ctk.CTk):
                 self.final_canvas_ad.create_line(cen_pts[i][0],cen_pts[i][1],cen_pts[i-1][0],cen_pts[i-1][1],fill='green',width=1,tags='finalsutures')
                 d = math.sqrt(((cen_pts[i-1][0] - cen_pts[i][0])**2) + ((cen_pts[i-1][1] - cen_pts[i][1])**2))
                 print(str(i) + ': ' + str(d))
-
+            
             # draw points and suture lines
+            suture_color = self.optFrame.final_suture_colors[len(in_pts)][i]
             self.final_canvas.create_oval(in_pts[i][0]-r,in_pts[i][1]-r,in_pts[i][0]+r,in_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
             self.final_canvas.create_oval(ex_pts[i][0]-r,ex_pts[i][1]-r,ex_pts[i][0]+r,ex_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
             #self.final_canvas.create_oval(self.optFrame.center_pts[i][0]-r,self.optFrame.center_pts[i][1]-r,self.optFrame.center_pts[i][0]+r,self.optFrame.center_pts[i][1]+r,fill='green') #Center
-            self.final_canvas.create_line(in_pts[i][0],in_pts[i][1],ex_pts[i][0],ex_pts[i][1],fill='black',width=1.5,tags='finalsutures')
+            self.final_canvas.create_line(in_pts[i][0],in_pts[i][1],ex_pts[i][0],ex_pts[i][1],fill=suture_color,width=1.5,tags='finalsutures')
 
             self.final_canvas_ad.create_oval(in_n_pts[i][0]-r,in_n_pts[i][1]-r,in_n_pts[i][0]+r,in_n_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
             self.final_canvas_ad.create_oval(ex_n_pts[i][0]-r,ex_n_pts[i][1]-r,ex_n_pts[i][0]+r,ex_n_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
-            self.final_canvas_ad.create_line(in_n_pts[i][0],in_n_pts[i][1],ex_n_pts[i][0],ex_n_pts[i][1],fill='black',width=1.5,tags='finalsutures')
+            self.final_canvas_ad.create_line(in_n_pts[i][0],in_n_pts[i][1],ex_n_pts[i][0],ex_n_pts[i][1],fill=suture_color,width=1.5,tags='finalsutures')
 
     def view_final(self):
         self.optFrame.grid_forget()
@@ -803,17 +806,18 @@ class GUI(ctk.CTk):
                 self.final_canvas_ad.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1.5,tags='finalsutures')
 
             # draw points and suture lines
+            suture_color = self.optFrame.final_suture_colors[self.optFrame.num_pts][i]
             self.final_canvas.create_oval(self.optFrame.insert_pts[i][0]-r,self.optFrame.insert_pts[i][1]-r,self.optFrame.insert_pts[i][0]+r,self.optFrame.insert_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
             self.final_canvas.create_oval(self.optFrame.extract_pts[i][0]-r,self.optFrame.extract_pts[i][1]-r,self.optFrame.extract_pts[i][0]+r,self.optFrame.extract_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
             #self.final_canvas.create_oval(self.optFrame.center_pts[i][0]-r,self.optFrame.center_pts[i][1]-r,self.optFrame.center_pts[i][0]+r,self.optFrame.center_pts[i][1]+r,fill='green') #Center
             #scale = 1
             #if self.wound_mask[self.optFrame.insert_pts[i][1],self.optFrame.insert_pts[i][0]] == 255:
-            self.final_canvas.create_line(self.optFrame.insert_pts[i][0],self.optFrame.insert_pts[i][1],self.optFrame.extract_pts[i][0],self.optFrame.extract_pts[i][1],fill='black',width=1.5,tags='finalsutures')
+            self.final_canvas.create_line(self.optFrame.insert_pts[i][0],self.optFrame.insert_pts[i][1],self.optFrame.extract_pts[i][0],self.optFrame.extract_pts[i][1],fill=suture_color,width=1.5,tags='finalsutures')
 
             # adpative length
             self.final_canvas_ad.create_oval(self.optFrame.n_insert_pts[i][0]-r,self.optFrame.n_insert_pts[i][1]-r,self.optFrame.n_insert_pts[i][0]+r,self.optFrame.n_insert_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
             self.final_canvas_ad.create_oval(self.optFrame.n_extract_pts[i][0]-r,self.optFrame.n_extract_pts[i][1]-r,self.optFrame.n_extract_pts[i][0]+r,self.optFrame.n_extract_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
-            self.final_canvas_ad.create_line(self.optFrame.n_insert_pts[i][0],self.optFrame.n_insert_pts[i][1],self.optFrame.n_extract_pts[i][0],self.optFrame.n_extract_pts[i][1],fill='black',width=1.5,tags='finalsutures')
+            self.final_canvas_ad.create_line(self.optFrame.n_insert_pts[i][0],self.optFrame.n_insert_pts[i][1],self.optFrame.n_extract_pts[i][0],self.optFrame.n_extract_pts[i][1],fill=suture_color,width=1.5,tags='finalsutures')
             
 
         self.suture_planner_text.configure(text='- Optimized Suture Placement Plan -\nWound skin is pulled together along centerline before suturing.')
@@ -868,6 +872,7 @@ class GUI(ctk.CTk):
         for c in centroids:
             cx, cy = c[0], c[1]
             draw.ellipse((cx-4, cy-4, cx+4, cy+4), fill='yellow')
+        self.centroids = centroids
         
         self.tk_image = ImageTk.PhotoImage(base_image)
         self.image_canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
