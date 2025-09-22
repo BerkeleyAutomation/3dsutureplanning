@@ -34,6 +34,15 @@ class SuturePlacer:
         self.c_lossVarInsExt = 6
         self.c_lossClosure = 15
         self.c_lossShear = 5
+    
+    def initial_sutures_from_curvature(self, radius=10, scale_factor=0.05, min_curvature=0.001):
+        """
+        Compute high-curvature points and generate initial suture placement.
+        """
+        high_curv_idx = self.compute_curvature_points(self.sampled_spline_pts, radius=radius, min_curvature=min_curvature)
+        suture_pts = self.segment_along_curve(self.sampled_spline_pts, high_curv_idx, scale_factor=scale_factor)
+        return np.array(suture_pts)
+
 
     def compute_curvature_points(self, spline_pts, radius=10, min_curvature=0.001):
         """
@@ -227,7 +236,14 @@ class SuturePlacer:
             d[num_sutures] = {}
             heuristic = num_sutures
             best_loss = float('inf')
-            wound_points = np.linspace(0, 1, num_sutures)
+
+            suture_pts = self.initial_sutures_from_curvature(radius=10, scale_factor=0.05)
+            # resample or limit to `num_sutures` if too many
+            if len(suture_pts) > num_sutures:
+                indices = np.linspace(0, len(suture_pts)-1, num_sutures).astype(int)
+                wound_points = suture_pts[indices]
+            else:
+                wound_points = suture_pts
             
             insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts, ts = self.optimize(wound_points=wound_points,optFrame=_optFrame)
 

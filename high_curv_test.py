@@ -4,11 +4,11 @@ from SuturePlacer import SuturePlacer
 
 # define multiple sampled splines
 splines = {
-    "Sine Wave": [(50 + i*5, 100 + 20*np.sin(i/5)) for i in range(30)],
-    "Cosine Wave": [(50 + i*5, 120 + 15*np.cos(i/6)) for i in range(30)],
+    # "Sine Wave": [(50 + i*5, 100 + 20*np.sin(i/5)) for i in range(30)],
+    # "Cosine Wave": [(50 + i*5, 120 + 15*np.cos(i/6)) for i in range(30)],
     "Sine Variation": [(x, 50 + 20 * np.sin(x/5) * np.exp(-x/50)) for x in range(0, 60)],
-    #"Multiple Dips": [(x, 100 + 1.5 * np.sin(x * 0.3)) for x in range(0, 50)],
-    "Letter C": [(100 + 50*np.cos(theta), 100 + 50*np.sin(theta)) for theta in np.linspace(np.pi/2, 3*np.pi/2, 40)], 
+    "Multiple Dips": [(x, 100 + 1.5 * np.sin(x * 0.3)) for x in range(0, 50)],
+    #"Letter C": [(100 + 50*np.cos(theta), 100 + 50*np.sin(theta)) for theta in np.linspace(np.pi/2, 3*np.pi/2, 40)], 
     # "Sharp Corner": [(50, 100), (100, 100), (100, 150), (150, 150)]
 }
 
