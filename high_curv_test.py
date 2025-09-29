@@ -4,8 +4,8 @@ from SuturePlacer import SuturePlacer
 
 splines = {
     # very gentle curves
-    "Sine Variation": [(x, 50 + 1.5 * np.sin(x / 10) * np.exp(-x / 100)) for x in range(0, 60)],
-    "Multiple Dips": [(x, 50 + 0.5 * np.sin(x / 8)) for x in range(0, 50)],
+    "Sine Variation (1)": [(x, 50 + 1.5 * np.sin(x / 10) * np.exp(-x / 100)) for x in range(0, 60)],
+    "Sine Variation (2)": [(x, 50 + 0.5 * np.sin(x / 8)) for x in range(0, 50)],
 }
 
 wound_width = 10
@@ -15,10 +15,8 @@ fig, axes = plt.subplots(2, 2, figsize=(15, 12))
 axes = axes.flatten()
 
 for ax, (name, sampled_points) in zip(axes, splines.items()):
-    # match your SuturePlacer signature: (wound_width, mm_per_pixel, sampled_spline_pts)
     placer = SuturePlacer(wound_width, mm_per_pixel, sampled_points)
 
-    # compute high-curvature indices and suture points
     high_curv_idx = placer.compute_curvature_points(sampled_points)
     suture_pts = placer.segment_along_curve(sampled_points, high_curv_idx)
 
