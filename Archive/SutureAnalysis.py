@@ -1,6 +1,6 @@
 import scipy_generate_sample_spline
 import scipy.interpolate as inter
-import SuturePlacer
+import MaxSuturePlacer
 from InsertionPointGenerator import InsertionPointGenerator
 from ScaleGenerator import ScaleGenerator
 import numpy as np

@@ -1,7 +1,7 @@
 from EdgeDetector import img_to_line, line_to_spline, line_to_spline_3d, click_points_simple
 import tensorflow as tf
 from main import suture_display_adj_pipeline
-from SuturePlacer import SuturePlacer
+from MaxSuturePlacer import SuturePlacer
 from Optimizer3d import Optimizer3d
 from MeshIngestor import MeshIngestor
 from SutureDisplayAdjust import SutureDisplayAdjust

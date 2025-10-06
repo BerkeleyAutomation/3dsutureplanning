@@ -1,41 +1,33 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from SuturePlacer import SuturePlacer
+from scipy.interpolate import splprep, splev
 
-splines = {
-    # very gentle curves
-    "Sine Variation (1)": [(x, 50 + 1.5 * np.sin(x / 10) * np.exp(-x / 100)) for x in range(0, 60)],
-    "Sine Variation (2)": [(x, 50 + 0.5 * np.sin(x / 8)) for x in range(0, 50)],
-}
+# Example spline: sine variation
+sampled_points = [(x, 50 + 1.5 * np.sin(x / 10) * np.exp(-x / 100)) for x in range(0, 60)]
+pts_arr = np.array(sampled_points)
+x, y = pts_arr[:, 0], pts_arr[:, 1]
 
-wound_width = 10
-mm_per_pixel = 1
+# Fit B-spline
+tck, u = splprep([x, y], s=0, k=3)
 
-fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-axes = axes.flatten()
+# Dense evaluation for plotting
+u_dense = np.linspace(0, 1, 500)
+spline_x, spline_y = splev(u_dense, tck)
 
-for ax, (name, sampled_points) in zip(axes, splines.items()):
-    placer = SuturePlacer(wound_width, mm_per_pixel, sampled_points)
+# Extract internal knots (remove repeated start/end knots)
+k = 3
+internal_knots = tck[0][k:-k]
+knot_pts = np.array([splev(u_val, tck) for u_val in internal_knots])
 
-    high_curv_idx = placer.compute_curvature_points(sampled_points)
-    suture_pts = placer.segment_along_curve(sampled_points, high_curv_idx)
+# Plot spline and knots
+plt.figure(figsize=(8, 6))
+plt.plot(spline_x, spline_y, 'k-', lw=1, label='Spline')
+if len(knot_pts) > 0:
+    plt.scatter(knot_pts[:, 0], knot_pts[:, 1], c='purple', s=80, marker='x', label='Internal knots')
 
-    spline_pts_arr = np.array(sampled_points)
-    if len(high_curv_idx) > 0:
-        high_curv_pts_arr = spline_pts_arr[high_curv_idx]
-    else:
-        high_curv_pts_arr = np.empty((0, 2))
-
-    suture_pts_arr = np.array(suture_pts) if len(suture_pts) > 0 else np.empty((0, 2))
-
-    ax.plot(spline_pts_arr[:, 0], spline_pts_arr[:, 1], 'b-', label='Sampled pts')
-    if high_curv_pts_arr.size:
-        ax.scatter(high_curv_pts_arr[:, 0], high_curv_pts_arr[:, 1], c='red', s=80, label='High curvature (indices)')
-    if suture_pts_arr.size:
-        ax.scatter(suture_pts_arr[:, 0], suture_pts_arr[:, 1], c='green', s=50, label='Suture points')
-
-    ax.set_title(name)
-    ax.legend()
-
+plt.title("B-spline Internal Knots")
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.legend()
 plt.tight_layout()
 plt.show()

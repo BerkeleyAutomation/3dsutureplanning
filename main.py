@@ -2,7 +2,7 @@
 import customtkinter as ctk
 from tkinter import filedialog
 import scipy.interpolate as inter
-from SuturePlacer import SuturePlacer
+from MaxSuturePlacer import SuturePlacer
 # import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
