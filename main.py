@@ -342,7 +342,8 @@ class GUI(ctk.CTk):
 
         link_icon = Image.open("external_link.png")
         self.link_image = ctk.CTkImage(link_icon, size=(15,15))
-        copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
+        copyr = ctk.CTkButton(self, text='This is a Beta Test of software in-progress. Please send feedback to: cassie.jeng@berkeley.edu', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
+        #copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
         copyr.grid(row=0, column=0, padx=0, pady=0, sticky='ew')
 
         suture_planner_title = ctk.CTkLabel(self, text='Suture-It', font=('Arial Bold',50), fg_color='#7dafce', text_color='#003049')
@@ -354,7 +355,8 @@ class GUI(ctk.CTk):
         self.suture_it_company = ctk.CTkButton(self, text='', image=self.company_image, compound='left', command=self.open_link, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
         self.suture_it_company.grid(row=2, column=0, padx=5, pady=5)
 
-        self.suture_planner_text = ctk.CTkLabel(self, text='Welcome to Suture-It. Upload a wound image to start!', font=('Arial',24), wraplength=700, text_color='#003049')
+        # Welcome to Suture-It. Upload a wound image to start!
+        self.suture_planner_text = ctk.CTkLabel(self, text='Welcome to Suture-It!', font=('Arial',24), wraplength=700, text_color='#003049')
         self.suture_planner_text.grid(row=3, column=0, padx=20, pady=10)
 
         self.disclaimer = ctk.CTkLabel(self, text='Disclaimer:\nIn its current stage, Suture-It does not consider factors such as:\n   - Potential skin deformations during implementation\n   - Dynamic skin surface and patient movement during procedure\n   - Differences in equipment materials (needle, thread, etc.)\n   - Depth/3D conceptualization of wound\n\nWe recognize future work that could complement the current program:\n   - Dynamic adjustments to suture plan during suturing\n   - Projection of suture plan onto wound for real-time guidance', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
@@ -365,11 +367,20 @@ class GUI(ctk.CTk):
         self.results_fig = ctk.CTkLabel(self, text="", image=self.results_img)
         self.results_fig.grid(row=5, column=0, padx=20, pady=0)
 
+        example_images = Image.open("example_uploads.png")
+        self.example_img = ctk.CTkImage(example_images, size=(445,300))
+        self.example_fig = ctk.CTkLabel(self, text="", image=self.example_img)
+
         self.results_cap = ctk.CTkLabel(self, text='Example Suture-It Results',font=('Arial',17), wraplength=700, text_color='#003049')
         #self.results_cap.grid(row=6, column=0, padx=20, pady=10)
 
+        self.get_started_button = ctk.CTkButton(self, text='Start Suture-It!', command=self.progress_to_upload, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+        self.get_started_button.grid(row=100, column=0, padx=20, pady=20)
+
+        self.upload_inst = ctk.CTkLabel(self, text='Example wound images that can be uploaded to this program are shown below and included in the program repository. Accepted file types: *.jpg, *.jpeg, *.png, *.bmp, *.tiff, *.gif\n\nTo use custom wound images:\n   - Search \"open wound images\" on Google Images [Viewer discretion advised for results]\n   - Save chosen image locally\n   - Click \"Upload Wound Image\" below\n   - Navigate to where the image was saved and select to upload', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
+
         self.upload_image_button = ctk.CTkButton(self, text='Upload Wound Image', command=self.upload_image, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
+        #self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
 
         self.plan_num = 0
         self.scale_pts = [(331,120),(342,160)]
@@ -519,10 +530,22 @@ class GUI(ctk.CTk):
 
         self.mask_generated.grid(row=100, column=0, padx=20, pady=20)
 
-    def upload_image(self):
-        image_path = filedialog.askopenfilename(title='Select an Image', filetypes=[('Image Files','*.jpg *.jpeg *.png *.bmp *.tiff *.gif')])
+    def progress_to_upload(self):
         self.disclaimer.grid_forget()
         self.results_fig.grid_forget()
+        self.get_started_button.grid_forget()
+        self.suture_planner_text.configure(text='Upload a wound image to start!')
+
+        self.upload_inst.grid(row=4, column=0, padx=20, pady=10)
+        self.example_fig.grid(row=5, column=0, padx=20, pady=0)
+        self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
+
+    def upload_image(self):
+        image_path = filedialog.askopenfilename(title='Select an Image', filetypes=[('Image Files','*.jpg *.jpeg *.png *.bmp *.tiff *.gif')])
+        #self.disclaimer.grid_forget()
+        #self.results_fig.grid_forget()
+        self.upload_inst.grid_forget()
+        self.example_fig.grid_forget()
         #self.results_cap.grid_forget()
         
         if image_path:
@@ -679,10 +702,12 @@ class GUI(ctk.CTk):
         self.buttons_frame.grid_forget()
         self.slider_frame.grid_forget()
 
-        self.suture_planner_text.configure(text='Welcome to Suture-It. Upload a wound image to start!')
-        self.disclaimer.grid(row=4, column=0, padx=20, pady=20)
-        self.results_fig.grid(row=5, column=0, padx=20, pady=0)
-        #self.results_cap.grid(row=6, column=0, padx=20, pady=10)
+        self.get_started_button.grid_forget()
+        #self.suture_planner_text.configure(text='Welcome to Suture-It. Upload a wound image to start!')
+        self.suture_planner_text.configure(text='Upload a wound image to start!')
+        self.upload_inst.grid(row=4, column=0, padx=20, pady=10)
+        self.example_fig.grid(row=5, column=0, padx=20, pady=0)
+        self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
         self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
 
         # self.scale_pts = []
