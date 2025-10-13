@@ -2,6 +2,7 @@
 import customtkinter as ctk
 from tkinter import filedialog
 import scipy.interpolate as inter
+from scipy.spatial.distance import cdist
 from SuturePlacer import SuturePlacer
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -17,7 +18,6 @@ import cv2
 import math
 from PIL import Image, ImageTk, ImageDraw
 import json
-from sklearn.cluster import DBSCAN
 
 import tkinter as tk
 
@@ -395,6 +395,7 @@ class GUI(ctk.CTk):
         self.suture_drawn_button = ctk.CTkButton(self, text='Done!', command=self.suture_drawn, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.mask_generated = ctk.CTkButton(self, text='Compute Wound Centerline', command=self.compute_centerline, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.start_opt = ctk.CTkButton(self, text='Start Suture Planning', command=self.optimization, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+        self.view_centroids = ctk.CTkButton(self, text='View High Curvature points', command=self.view_curvature_points, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.view_curvature = ctk.CTkButton(self, text='Continue Setup', command=self.compute_curvature, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         self.see_final_opt = ctk.CTkButton(self, text='View Optimized Suture Plan', command=self.view_final, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
         
@@ -416,7 +417,7 @@ class GUI(ctk.CTk):
 
         self.use_curvature = ctk.StringVar(value="off")
         self.curvature_switch = ctk.CTkSwitch(self, text="Consider high curvature points in optimization",variable=self.use_curvature, onvalue="on", offvalue="off")
-
+        self.point_count_label = ctk.CTkLabel(self, text='Number of high-curvature points: 0', font=('Arial', 14, 'bold'), text_color='#003049', fg_color="#f8f9fa")
 
     def on_close(self):
         #self.destroy()
@@ -622,6 +623,7 @@ class GUI(ctk.CTk):
 
         self.start_opt.grid_forget()
         self.curvature_switch.grid_forget()
+        self.point_count_label.grid_forget()
         self.image_canvas.destroy()
         self.suture_planner_text.configure(text='Running Suture Placement Optimization!')
 
@@ -677,6 +679,8 @@ class GUI(ctk.CTk):
         self.restart_button.grid_forget()
         self.buttons_frame.grid_forget()
         self.curvature_switch.grid_forget()
+        self.point_count_label.grid_forget()
+        self.view_curvature.grid_forget()
         self.optimization()
 
     def restart(self):
@@ -698,6 +702,8 @@ class GUI(ctk.CTk):
         self.buttons_frame.grid_forget()
         self.slider_frame.grid_forget()
         self.curvature_switch.grid_forget()
+        self.point_count_label.grid_forget()
+        self.view_curvature.grid_forget()
 
         self.suture_planner_text.configure(text='Welcome to Suture-It. Upload a wound image to start!')
         self.disclaimer.grid(row=4, column=0, padx=20, pady=20)
@@ -842,66 +848,11 @@ class GUI(ctk.CTk):
         self.restart_button.grid(row=0, column=1, padx=40, pady=5)
         self.end_program_button.grid(row=1, column=1, padx=40, pady=0)
     
-    def compute_curvature(self):
-        self.view_curvature.grid_forget()
-        self.curvature_switch.grid_forget()
-        self.image_canvas.delete("all")
-        self.suture_planner_text.configure(text='High Curvature Points')
-
-        # compute curvature
-        points = np.linspace(0, 1, 1000)
-        x_spline, y_spline = inter.splev(points, self.tck)
-        curvature = self.curvature(points=points)
-
-        cmap = LinearSegmentedColormap.from_list("white_red", ["#ffffff", "#ff69b4", "#ff0000"])
-        norm = mcolors.Normalize(vmin=np.min(curvature), vmax=np.max(curvature))
-        sm = ScalarMappable(norm=norm, cmap=cmap)
-        base_image = self.image.convert("RGB")
-        draw = ImageDraw.Draw(base_image)
-
-        # draw colored spline with curvature
-        for i in range(len(x_spline) - 1):
-            x0, y0 = x_spline[i], y_spline[i]
-            x1, y1 = x_spline[i + 1], y_spline[i + 1]
-            color = sm.to_rgba(curvature[i])[:3]
-            rgb_color = tuple(int(255 * c) for c in color)
-            draw.line([(x0, y0), (x1, y1)], fill=rgb_color, width=3)
-
-        # plot clustered points
-        centroids = self.get_curvature_centroids(x_spline, y_spline, curvature)
-        for c in centroids:
-            cx, cy = c[0], c[1]
-            draw.ellipse((cx-4, cy-4, cx+4, cy+4), fill='yellow')
-        self.centroids = centroids
-        
-        self.tk_image = ImageTk.PhotoImage(base_image)
-        self.image_canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
-        self.image_canvas.image = self.tk_image
-
-        self.curvature_switch.grid(row=90, column=0, padx=20, pady=20)
-        self.start_opt.grid(row=100, column=0, padx=20, pady=20)
-
-    def get_curvature_centroids(self, x_spline, y_spline, curvature, percentile=90, eps=10, min_samples=2):
-        high_curv_mask = curvature > np.percentile(curvature, 90)
-        coords = np.vstack([x_spline, y_spline]).T
-        high_curv_points = coords[high_curv_mask]
-
-        if len(high_curv_points) == 0:
-            return []
-
-        dbscan = DBSCAN(eps=10, min_samples=2)
-        labels = dbscan.fit_predict(high_curv_points)
-        unique_labels = set(labels)
-        centroids = []
-        for label in unique_labels:
-            if label == -1:
-                continue
-            cluster_pts = high_curv_points[labels == label]
-            centroid = np.mean(cluster_pts, axis=0)
-            centroids.append(tuple(centroid))  # (x, y)
-        return centroids
     
     def curvature(self, points):
+        """
+        Calculates curvature for a set of given points.
+        """
         first_deriv = inter.splev(points, self.tck, der=1)
         second_deriv = inter.splev(points, self.tck, der=2)
         dx_dt = first_deriv[0]
@@ -909,20 +860,443 @@ class GUI(ctk.CTk):
         d2x_dt2 = second_deriv[0]
         d2y_dt2 = second_deriv[1]
 
-        curvature = []
-        for i in range(len(points)):
-            numerator = abs(dx_dt[i] * d2y_dt2[i] - dy_dt[i] * d2x_dt2[i])
-            denominator = (dx_dt[i]**2 + dy_dt[i]**2)**(3/2)
-            
-            if denominator > 1e-10:  # Avoid division by zero
-                k = numerator / denominator
-            else:
-                k = 0
-            curvature.append(k)
+        numerator = abs(dx_dt * d2y_dt2 - dy_dt * d2x_dt2)
+        denominator = (dx_dt**2 + dy_dt**2)**(3/2)
+        
+        umin, umax = np.min(points), np.max(points)
+        margin = 0.10 * (umax - umin)
+        dist_to_start = points - umin
+        dist_to_end = umax - points
+        dist = np.minimum(dist_to_start, dist_to_end)
+
+        # cosine taper weights: 1 at endpoint, 0 beyond margin
+        weights = np.zeros_like(points)
+        inside = dist < margin
+        
+        eps_base = 1e-6 * np.mean(denominator)
+        eps_end = 1e-3 * np.max(denominator)
+        eps_blend = eps_base * (1 - weights) + eps_end * weights
+
+        denom_stable = np.maximum(denominator, eps_blend)
+
+        curvature = numerator / denom_stable
+        curvature = 1 / denom_stable
         
         curvature = np.array(curvature)
         self.curvature_values = curvature
         return curvature
+    
+
+    def euc_dist(self, a, b):
+        return np.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
+
+    
+    def get_total_wound_length(self):
+        """
+        Estimates the total wound length.
+        """
+        t_start = self.tck[0][self.tck[2]]
+        t_end = self.tck[0][-(self.tck[2] + 1)]
+
+        dense_pts = 10000 
+        dense_t = np.linspace(t_start, t_end, dense_pts)
+        x_dense, y_dense = inter.splev(dense_t, self.tck)
+
+        total_arc_length = 0.0
+        for i in range(len(x_dense) - 1):
+            p1 = (x_dense[i], y_dense[i])
+            p2 = (x_dense[i+1], y_dense[i+1])
+            total_arc_length += self.euc_dist(p1, p2)
+            
+        return total_arc_length
+    
+
+    def get_wound_length(self, start_t, end_t):
+        """
+        Estimates the wound length between 2 t values.
+        """
+        # points[i-1] is the same as spline_pts[t_vals[i]]
+        points_t = np.linspace(start_t*1.0/10000, end_t*1.0/10000, 1000)
+        x_spline, y_spline = inter.splev(points_t, self.tck)
+        spline_pts = np.array(list(zip(x_spline, y_spline)))
+
+        arc_length = 0.0
+        for i in range(len(spline_pts) - 1):
+            p1 = spline_pts[i]
+            p2 = spline_pts[i + 1]
+            arc_length += self.euc_dist(p1, p2)
+        
+        return arc_length
+
+
+    def filter_centroids(self, points):
+        """
+        Filter out high-curvature points.
+        """
+        # distance constraint: only keep points a certain distance away from each other
+        if len(points) == 0:
+            return []
+
+        # arc points
+        points_t = np.linspace(0, 1, 10000)
+        x_spline, y_spline = inter.splev(points_t, self.tck)
+        spline_pts = np.array(list(zip(x_spline, y_spline)))
+        
+        # arc length = sum of euc. distance of segments
+        t_vals = [0] + [np.argmin([self.euc_dist(spline_pts[i], p) for i in range(len(spline_pts))]) for p in points] + [9999]
+        tot_arc_length = 0.0
+        dists = []
+        for i in range(1, len(t_vals)):
+            # points[i-1] is the same as spline_pts[t_vals[i]]
+            arc_length = self.get_wound_length(t_vals[i-1], t_vals[i])
+            tot_arc_length += arc_length
+            dists.append([t_vals[i] , arc_length])
+        dists = dists[:len(dists)-1]
+
+        # group points based on arc length
+        thresh = 0.10 * tot_arc_length
+        close_pts = []
+        group = []
+        for d in dists:
+            if len(group):
+                if d[1] > thresh:
+                    close_pts.append(group)
+                    group = []
+            group.append(d[0])
+        if len(group):
+            close_pts.append(group)
+        
+        # choose one point per group based on best curvature
+        curvature = self.curvature(points_t)
+        filtered_points = []
+        for c in close_pts:
+            if len(c) == 1:
+                filtered_points.append(spline_pts[c[0]])
+            else:
+                best_i = np.argmax([curvature[t] for t in c])
+                best_t = c[best_i]
+                filtered_points.append(spline_pts[best_t])
+        
+        return filtered_points
+
+
+
+    def segment_spline(self):
+        """
+        Segments B-spline based on knot points.
+        Plots segments with a color gradient (globally scaled) using a unique
+        base color for each segment. Marks the highest-curvature point in each segment.
+        """
+        # segment the spline using knot points
+        knot_vector = self.tck[0]
+        spline_degree = self.tck[2] 
+        
+        all_unique_knots_t = np.unique(knot_vector[spline_degree:-spline_degree])
+        t_start = knot_vector[spline_degree]      
+        t_end = knot_vector[-(spline_degree + 1)] 
+
+        segment_t_params = np.copy(all_unique_knots_t)
+        if segment_t_params[0] != t_start:
+            segment_t_params = np.insert(segment_t_params, 0, t_start)
+        if segment_t_params[-1] != t_end:
+            segment_t_params = np.append(segment_t_params, t_end)
+
+        # parameters for the plot
+        line_width = 3
+        marker_x_offset = 4
+        marker_y_offset = 6
+        max_curv_marker_radius = 5
+        knot_offset = 15
+        
+        # plot segments with curvature
+        full_base_image = self.image.convert("RGB")
+        full_draw = ImageDraw.Draw(full_base_image)
+
+        segment_color_hex_list = ['#1f77b4'] * 10 #, '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+                    #'#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+        legend_colors = []
+        
+        num_segments = len(segment_t_params) - 1   
+        knot_x_coords, knot_y_coords = inter.splev(segment_t_params, self.tck)
+        knot_derivs = inter.splev(segment_t_params, self.tck, der=1) # tangents at all knot points for offset calculations
+        max_curv_pts = []
+
+        # --- GLOBAL CURVATURE CALCULATION AND NORMALIZATION ---
+        # 1. Calculate Curvature for the entire spline globally
+        full_curve_pts = np.linspace(t_start, t_end, 1000) 
+        global_curvature = self.curvature(full_curve_pts)
+
+        # 2. Normalize globally to set the color scale for all segments
+        global_min_k = np.min(global_curvature)
+        global_max_k = np.max(global_curvature)
+        
+        global_norm = Normalize(vmin=global_min_k, vmax=global_max_k)
+        # --- END GLOBAL SETUP ---
+
+    
+        for i in range(num_segments):
+            t_min = segment_t_params[i]
+            t_max = segment_t_params[i+1] 
+
+            segment_t = np.linspace(t_min, t_max, 100) 
+            x_segment, y_segment = inter.splev(segment_t, self.tck)
+            segment_curvature = self.curvature(segment_t)
+
+            # --- PLOT CURVATURE WITH UNIQUE SEGMENT COLOR, USING GLOBAL SCALE ---
+            
+            # Define the unique color for the segment
+            marker_color_hex = segment_color_hex_list[i % len(segment_color_hex_list)]
+            
+            # Create a segmented colormap that goes from near-white to the segment's unique color
+            # The color mapping will still be globally scaled because of how 'global_norm' is applied
+            segment_cmap = LinearSegmentedColormap.from_list(f"global_to_segment_{i}", ["#f0f0f0", marker_color_hex])
+            
+            # Create a ScalarMappable using the SEGMENT's unique color map, but the GLOBAL normalization
+            sm = ScalarMappable(norm=global_norm, cmap=segment_cmap)
+            
+            # get max curvature point
+            max_k_index = np.argmax(segment_curvature)
+            max_k_x = x_segment[max_k_index]
+            max_k_y = y_segment[max_k_index]
+            max_curv_pts.append([max_k_x, max_k_y])
+            
+            # Store the base segment color for the legend
+            legend_colors.append(tuple(int(255 * c) for c in mcolors.to_rgb(marker_color_hex))) 
+            
+            # plot gradient
+            for j in range(len(x_segment) - 1):
+                # Use the segment's color map and the GLOBAL normalization
+                color_rgba = sm.to_rgba(segment_curvature[j])
+                rgb_color = tuple(int(255 * c) for c in color_rgba[:3])
+
+                x0, y0 = x_segment[j], y_segment[j]
+                x1, y1 = x_segment[j + 1], y_segment[j + 1]
+                
+                full_draw.line([(x0, y0), (x1, y1)], fill=rgb_color, width=line_width)
+
+            # plot spline segment marker
+            kx, ky = knot_x_coords[i], knot_y_coords[i]
+            dx_k, dy_k = knot_derivs[0][i], knot_derivs[1][i]
+            norm = np.sqrt(dx_k**2 + dy_k**2) # calculate offset from derivative magnitude
+            
+            if norm > 1e-6:
+                nx = -dy_k / norm
+                ny = dx_k / norm
+                offset_kx = kx + nx * knot_offset
+                offset_ky = ky + ny * knot_offset
+            else: # if no derivative, use original position
+                offset_kx, offset_ky = kx, ky 
+
+            segment_number = str(i+1)
+            full_draw.line([(offset_kx, offset_ky), (kx, ky)], fill='white', width=2)
+            full_draw.rectangle((offset_kx - marker_x_offset, offset_ky - marker_y_offset, 
+                                    offset_kx + marker_x_offset, offset_ky + marker_y_offset), fill='white')
+            full_draw.text((offset_kx - marker_x_offset + 1, offset_ky - marker_y_offset + 1), segment_number, fill='black', font=None)
+            
+            # plot max curvature point
+            mx = max_k_x
+            my = max_k_y
+            
+            # The outline color should match the segment's base color
+            # full_draw.ellipse((mx - max_curv_marker_radius, my - max_curv_marker_radius, mx + max_curv_marker_radius, my + max_curv_marker_radius), 
+            #             outline=marker_color_hex, width=2)
+        
+        max_curv_pts = np.array(max_curv_pts)
+        
+        return full_base_image, legend_colors, max_curv_pts
+
+    
+    def segment_spline_old(self):
+        """
+        Segments B-spline based on knot points.
+        Plots segments with a color gradient corresponding to the curvature of the segment.
+        Marks the highest-curvature point in each segment.
+        """
+        # segment the spline using knot points
+        knot_vector = self.tck[0]
+        spline_degree = self.tck[2] 
+        
+        all_unique_knots_t = np.unique(knot_vector[spline_degree:-spline_degree])
+        t_start = knot_vector[spline_degree]      
+        t_end = knot_vector[-(spline_degree + 1)] 
+
+        segment_t_params = np.copy(all_unique_knots_t)
+        if segment_t_params[0] != t_start:
+            segment_t_params = np.insert(segment_t_params, 0, t_start)
+        if segment_t_params[-1] != t_end:
+            segment_t_params = np.append(segment_t_params, t_end)
+
+        # parameters for the plot
+        line_width = 3
+        marker_x_offset = 4
+        marker_y_offset = 6
+        max_curv_marker_radius = 5
+        knot_offset = 15
+        
+        # plot segments with curvature
+        full_base_image = self.image.convert("RGB")
+        full_draw = ImageDraw.Draw(full_base_image)
+
+        segment_color_hex_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+                    '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+        legend_colors = []
+        
+        num_segments = len(segment_t_params) - 1   
+        knot_x_coords, knot_y_coords = inter.splev(segment_t_params, self.tck)
+        knot_derivs = inter.splev(segment_t_params, self.tck, der=1) # tangents at all knot points for offset calculations
+        max_curv_pts = []
+
+        for i in range(num_segments):
+            t_min = segment_t_params[i]
+            t_max = segment_t_params[i+1] 
+
+            segment_t = np.linspace(t_min, t_max, 100) 
+            x_segment, y_segment = inter.splev(segment_t, self.tck)
+            segment_curvature = self.curvature(segment_t)
+
+            # normalize curvature + create gradient
+            marker_color_hex = segment_color_hex_list[i % len(segment_color_hex_list)]
+            segment_cmap = LinearSegmentedColormap.from_list(f"global_to_segment_{i}", ["#f0f0f0", marker_color_hex])
+
+            min_k = np.min(segment_curvature)
+            max_k = np.max(segment_curvature)
+            if max_k > min_k:
+                norm = Normalize(vmin=min_k, vmax=max_k)
+            else:
+                norm = Normalize(vmin=0, vmax=1) 
+                segment_curvature = np.zeros_like(segment_curvature)
+            sm = ScalarMappable(norm=norm, cmap=segment_cmap) 
+
+            # get max curvature point
+            max_k_index = np.argmax(segment_curvature)
+            max_k_x = x_segment[max_k_index]
+            max_k_y = y_segment[max_k_index]
+            max_curv_pts.append([max_k_x, max_k_y])
+            legend_colors.append(tuple(int(255 * c) for c in mcolors.to_rgb(marker_color_hex))) # store color for legend
+            
+            # plot gradient
+            for j in range(len(x_segment) - 1):
+                color_rgba = sm.to_rgba(segment_curvature[j])
+                rgb_color = tuple(int(255 * c) for c in color_rgba[:3])
+
+                x0, y0 = x_segment[j], y_segment[j]
+                x1, y1 = x_segment[j + 1], y_segment[j + 1]
+                
+                full_draw.line([(x0, y0), (x1, y1)], fill=rgb_color, width=line_width)
+
+            # plot spline segment marker
+            kx, ky = knot_x_coords[i], knot_y_coords[i]
+            dx_k, dy_k = knot_derivs[0][i], knot_derivs[1][i]
+            norm = np.sqrt(dx_k**2 + dy_k**2) # calculate offset from derivative magnitude
+            
+            if norm > 1e-6:
+                nx = -dy_k / norm
+                ny = dx_k / norm
+                offset_kx = kx + nx * knot_offset
+                offset_ky = ky + ny * knot_offset
+            else: # if no derivative, use original position
+                offset_kx, offset_ky = kx, ky 
+
+            segment_number = str(i+1)
+            full_draw.line([(offset_kx, offset_ky), (kx, ky)], fill='white', width=2)
+            full_draw.rectangle((offset_kx - marker_x_offset, offset_ky - marker_y_offset, 
+                                    offset_kx + marker_x_offset, offset_ky + marker_y_offset), fill='white')
+            full_draw.text((offset_kx - marker_x_offset + 1, offset_ky - marker_y_offset + 1), segment_number, fill='black', font=None)
+            
+            # plot max curvature point
+            mx = max_k_x
+            my = max_k_y
+            full_draw.ellipse((mx - max_curv_marker_radius, my - max_curv_marker_radius, mx + max_curv_marker_radius, my + max_curv_marker_radius), 
+                        outline=marker_color_hex, width=2)
+        
+        max_curv_pts = np.array(max_curv_pts)
+        
+        return full_base_image, legend_colors, max_curv_pts
+
+
+    def compute_curvature(self):
+        # gui teardown + update
+        self.view_curvature.grid_forget()
+        self.curvature_switch.grid_forget()
+        self.image_canvas.delete("all")
+        self.suture_planner_text.configure(text='Segmented Centerline and Max Curvature Points')
+
+        self.image_canvas.grid(row=4, column=0, padx=20, pady=20) 
+        
+        full_image_pil, segment_colors, max_curv_pts = self.segment_spline() 
+
+        # update centroids
+        self.centroids = self.filter_centroids(max_curv_pts)
+
+        # update gui
+        self.tk_image = ImageTk.PhotoImage(full_image_pil)
+        self.image_canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
+        self.image_canvas.image = self.tk_image 
+
+        # display legend
+        legend_cols = 8
+        if hasattr(self, 'legend_frame'):
+            self.legend_frame.grid_forget()
+        self.legend_frame = ctk.CTkFrame(self, fg_color='#f8f9fa')
+        self.legend_frame.grid(row=5, column=0, padx=20, pady=5) 
+        
+        for i, color_rgb_tuple in enumerate(segment_colors):
+            color_hex = '#%02x%02x%02x' % color_rgb_tuple 
+            marker_label = ctk.CTkLabel(self.legend_frame, text="", 
+                                        width=15, height=15, 
+                                        fg_color=color_hex)
+            text_label = ctk.CTkLabel(self.legend_frame, 
+                                      text=f"Spline Segment {i + 1}", 
+                                      font=('Arial', 12), 
+                                      text_color='#003049',
+                                      anchor="w")
+            col = i % legend_cols 
+            row = i // legend_cols
+            
+            marker_label.grid(row=row, column=col * 2, padx=(10, 2), pady=5, sticky="w")
+            text_label.grid(row=row, column=col * 2 + 1, padx=(0, 10), pady=5, sticky="w")
+
+        self.view_centroids.grid(row=8, column=0, padx=20, pady=10)
+    
+
+    def view_curvature_points(self):
+        self.view_centroids.grid_forget()
+        if hasattr(self, 'legend_frame'):
+            self.legend_frame.grid_forget()
+        self.image_canvas.delete("all")
+        self.suture_planner_text.configure(text='High Curvature Points')
+
+        # plot centerline
+        points_t = np.linspace(0, 1, 1000)
+        x_spline, y_spline = inter.splev(points_t, self.tck)
+        
+        base_image = self.image.convert("RGB")
+        full_draw = ImageDraw.Draw(base_image)
+        
+        line_points = []
+        for x, y in zip(x_spline, y_spline):
+            line_points.extend([x, y])
+        
+        for j in range(len(x_spline) - 1):
+            x0, y0 = x_spline[j], y_spline[j]
+            x1, y1 = x_spline[j+1], y_spline[j+1]
+            full_draw.line([(x0, y0), (x1, y1)], fill='red', width=3)
+        
+        # plot centroids
+        for cx, cy in self.centroids:
+            r = 4
+            full_draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill='yellow', outline='black') 
+
+        self.tk_image = ImageTk.PhotoImage(base_image)
+        self.image_canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
+        self.image_canvas.image = self.tk_image
+
+        self.point_count_label.configure(text=f'Number of high-curvature points: {len(self.centroids)}', font=('Arial', 14, 'bold'), text_color='#003049')
+        self.point_count_label.grid(row=7, column=0, padx=20, pady=5) 
+        self.curvature_switch.grid(row=8, column=0, padx=20, pady=10)
+        self.start_opt.grid(row=9, column=0, padx=20, pady=10)
+
+   
     
 if __name__ == '__main__':
     app = GUI()

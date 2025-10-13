@@ -22,7 +22,7 @@ class Constraints:
         return [t[i+1] - t[i] for i in range(len(t)-1)]
     
     def con5(self, t):
-        if not self.centroids:
+        if self.centroids is None:
             return []
 
         suture_points = [self.DistanceCalculator.wound_parametric(ti, 0) for ti in t]
@@ -56,7 +56,7 @@ class Constraints:
         return mm_dist
     
     def get_closest_suture(self, t):
-        if not self.centroids:
+        if self.centroids is None:
             return []
 
         suture_points = [self.DistanceCalculator.wound_parametric(ti, 0) for ti in t]

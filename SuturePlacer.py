@@ -139,7 +139,7 @@ class SuturePlacer:
             final_suture_colors = ['black'] * num_sutures
             closest_sutures = self.Constraints.get_closest_suture(ts)
             for i in closest_sutures:
-                final_suture_colors[i] = 'yellow'
+                final_suture_colors[i] = '#01fd00'
             _optFrame.final_suture_colors[num_sutures] = final_suture_colors
 
             # save all suture plans for later mapping
