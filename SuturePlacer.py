@@ -137,10 +137,14 @@ class SuturePlacer:
             insert_dists, center_dists, extract_dists, insert_pts, center_pts, extract_pts, ts = self.optimize(wound_points=wound_points,optFrame=_optFrame)
             
             final_suture_colors = ['black'] * num_sutures
+            high_curv_sutures = [0] * num_sutures
             closest_sutures = self.Constraints.get_closest_suture(ts)
             for i in closest_sutures:
                 final_suture_colors[i] = '#01fd00'
+                high_curv_sutures[i] = 1
             _optFrame.final_suture_colors[num_sutures] = final_suture_colors
+            _optFrame.high_curv_sutures = high_curv_sutures
+            _optFrame.num_high_curv_sutures = np.sum(high_curv_sutures)
 
             # save all suture plans for later mapping
             _optFrame.planned_insert_pts.append(insert_pts)

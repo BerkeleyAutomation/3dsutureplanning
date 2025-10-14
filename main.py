@@ -30,10 +30,6 @@ import matplotlib.colors as mcolors
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
-
-# import threading
-# import time
-# import queue
 import sys
 
 class OptFrame(ctk.CTkFrame):
@@ -350,7 +346,8 @@ class GUI(ctk.CTk):
 
         link_icon = Image.open("external_link.png")
         self.link_image = ctk.CTkImage(link_icon, size=(15,15))
-        copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
+        copyr = ctk.CTkButton(self, text='This is a Beta Test of software in-progress. Please send feedback to: cassie.jeng@berkeley.edu', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
+        #copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
         copyr.grid(row=0, column=0, padx=0, pady=0, sticky='ew')
 
         suture_planner_title = ctk.CTkLabel(self, text='Suture-It', font=('Arial Bold',50), fg_color='#7dafce', text_color='#003049')
@@ -362,7 +359,8 @@ class GUI(ctk.CTk):
         self.suture_it_company = ctk.CTkButton(self, text='', image=self.company_image, compound='left', command=self.open_link, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
         self.suture_it_company.grid(row=2, column=0, padx=5, pady=5)
 
-        self.suture_planner_text = ctk.CTkLabel(self, text='Welcome to Suture-It. Upload a wound image to start!', font=('Arial',24), wraplength=700, text_color='#003049')
+        # Welcome to Suture-It. Upload a wound image to start!
+        self.suture_planner_text = ctk.CTkLabel(self, text='Welcome to Suture-It!', font=('Arial',24), wraplength=700, text_color='#003049')
         self.suture_planner_text.grid(row=3, column=0, padx=20, pady=10)
 
         self.disclaimer = ctk.CTkLabel(self, text='Disclaimer:\nIn its current stage, Suture-It does not consider factors such as:\n   - Potential skin deformations during implementation\n   - Dynamic skin surface and patient movement during procedure\n   - Differences in equipment materials (needle, thread, etc.)\n   - Depth/3D conceptualization of wound\n\nWe recognize future work that could complement the current program:\n   - Dynamic adjustments to suture plan during suturing\n   - Projection of suture plan onto wound for real-time guidance', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
@@ -373,11 +371,22 @@ class GUI(ctk.CTk):
         self.results_fig = ctk.CTkLabel(self, text="", image=self.results_img)
         self.results_fig.grid(row=5, column=0, padx=20, pady=0)
 
+        example_images = Image.open("example_uploads.png")
+        self.example_img = ctk.CTkImage(example_images, size=(445,300))
+        self.example_fig = ctk.CTkLabel(self, text="", image=self.example_img)
+
         self.results_cap = ctk.CTkLabel(self, text='Example Suture-It Results',font=('Arial',17), wraplength=700, text_color='#003049')
         #self.results_cap.grid(row=6, column=0, padx=20, pady=10)
 
+        self.get_started_button = ctk.CTkButton(self, text='Start Suture-It!', command=self.progress_to_upload, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+        self.get_started_button.grid(row=100, column=0, padx=20, pady=20)
+
+        self.upload_inst = ctk.CTkLabel(self, text='Example wound images that can be uploaded to this program are shown below and included in the program repository. Accepted file types: *.jpg, *.jpeg, *.png, *.bmp, *.tiff, *.gif\n\nTo use custom wound images:\n   - Search \"open wound images\" on Google Images [Viewer discretion advised for results]\n   - Save chosen image locally\n   - Click \"Upload Wound Image\" below\n   - Navigate to where the image was saved and select to upload', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
+
         self.upload_image_button = ctk.CTkButton(self, text='Upload Wound Image', command=self.upload_image, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
+        #self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
+
+        self.plot_pt_count = 0
 
         self.plan_num = 0
         self.scale_pts = [(331,120),(342,160)]
@@ -533,10 +542,22 @@ class GUI(ctk.CTk):
 
         self.mask_generated.grid(row=100, column=0, padx=20, pady=20)
 
-    def upload_image(self):
-        image_path = filedialog.askopenfilename(title='Select an Image', filetypes=[('Image Files','*.jpg *.jpeg *.png *.bmp *.tiff *.gif')])
+    def progress_to_upload(self):
         self.disclaimer.grid_forget()
         self.results_fig.grid_forget()
+        self.get_started_button.grid_forget()
+        self.suture_planner_text.configure(text='Upload a wound image to start!')
+
+        self.upload_inst.grid(row=4, column=0, padx=20, pady=10)
+        self.example_fig.grid(row=5, column=0, padx=20, pady=0)
+        self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
+
+    def upload_image(self):
+        image_path = filedialog.askopenfilename(title='Select an Image', filetypes=[('Image Files','*.jpg *.jpeg *.png *.bmp *.tiff *.gif')])
+        #self.disclaimer.grid_forget()
+        #self.results_fig.grid_forget()
+        self.upload_inst.grid_forget()
+        self.example_fig.grid_forget()
         #self.results_cap.grid_forget()
         
         if image_path:
@@ -705,10 +726,12 @@ class GUI(ctk.CTk):
         self.point_count_label.grid_forget()
         self.view_curvature.grid_forget()
 
-        self.suture_planner_text.configure(text='Welcome to Suture-It. Upload a wound image to start!')
-        self.disclaimer.grid(row=4, column=0, padx=20, pady=20)
-        self.results_fig.grid(row=5, column=0, padx=20, pady=0)
-        #self.results_cap.grid(row=6, column=0, padx=20, pady=10)
+        self.get_started_button.grid_forget()
+        #self.suture_planner_text.configure(text='Welcome to Suture-It. Upload a wound image to start!')
+        self.suture_planner_text.configure(text='Upload a wound image to start!')
+        self.upload_inst.grid(row=4, column=0, padx=20, pady=10)
+        self.example_fig.grid(row=5, column=0, padx=20, pady=0)
+        self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
         self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
 
         # self.scale_pts = []
@@ -717,6 +740,7 @@ class GUI(ctk.CTk):
         self.a = 0.77
     
     def change_suture_plan(self,event):
+        self.plot_pt_count = 0
         self.final_canvas.delete('finalsutures')
         self.final_canvas_ad.delete('finalsutures')
         self.plan_num = math.floor(self.plan_num_slider.get())
@@ -732,17 +756,18 @@ class GUI(ctk.CTk):
         ex_n_pts = self.optFrame.planned_n_extract_pts[self.plan_num-self.start_range]
 
         r = 3
-        print('\nDistances between sutures in suture plan:')
+        #print('\nDistances between sutures in suture plan:')
         for i in range(len(in_pts)):
             # draw centerline
-            if i != 0: # create_line(x1, y1, x2, y2)
-                self.final_canvas.create_line(cen_pts[i][0],cen_pts[i][1],cen_pts[i-1][0],cen_pts[i-1][1],fill='green',width=1,tags='finalsutures')
-                self.final_canvas_ad.create_line(cen_pts[i][0],cen_pts[i][1],cen_pts[i-1][0],cen_pts[i-1][1],fill='green',width=1,tags='finalsutures')
-                d = math.sqrt(((cen_pts[i-1][0] - cen_pts[i][0])**2) + ((cen_pts[i-1][1] - cen_pts[i][1])**2))
-                print(str(i) + ': ' + str(d))
-            
+            # if i != 0: # create_line(x1, y1, x2, y2)
+            #     self.final_canvas.create_line(cen_pts[i][0],cen_pts[i][1],cen_pts[i-1][0],cen_pts[i-1][1],fill='green',width=1.5,tags='centerline')
+            #     self.final_canvas_ad.create_line(cen_pts[i][0],cen_pts[i][1],cen_pts[i-1][0],cen_pts[i-1][1],fill='green',width=1.5,tags='centerline')
+            #     d = math.sqrt(((cen_pts[i-1][0] - cen_pts[i][0])**2) + ((cen_pts[i-1][1] - cen_pts[i][1])**2))
+            #     print(str(i) + ': ' + str(d))
+
             # draw points and suture lines
             suture_color = self.optFrame.final_suture_colors[len(in_pts)][i]
+
             self.final_canvas.create_oval(in_pts[i][0]-r,in_pts[i][1]-r,in_pts[i][0]+r,in_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
             self.final_canvas.create_oval(ex_pts[i][0]-r,ex_pts[i][1]-r,ex_pts[i][0]+r,ex_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
             #self.final_canvas.create_oval(self.optFrame.center_pts[i][0]-r,self.optFrame.center_pts[i][1]-r,self.optFrame.center_pts[i][0]+r,self.optFrame.center_pts[i][1]+r,fill='green') #Center
@@ -750,7 +775,36 @@ class GUI(ctk.CTk):
 
             self.final_canvas_ad.create_oval(in_n_pts[i][0]-r,in_n_pts[i][1]-r,in_n_pts[i][0]+r,in_n_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
             self.final_canvas_ad.create_oval(ex_n_pts[i][0]-r,ex_n_pts[i][1]-r,ex_n_pts[i][0]+r,ex_n_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
-            self.final_canvas_ad.create_line(in_n_pts[i][0],in_n_pts[i][1],ex_n_pts[i][0],ex_n_pts[i][1],fill=suture_color,width=1.5,tags='finalsutures')
+            self.final_canvas_ad.create_line(in_n_pts[i][0],in_n_pts[i][1],ex_n_pts[i][0],ex_n_pts[i][1],fill='black',width=1.5,tags='finalsutures')
+        
+        self.order_highcurvature(in_pts, ex_pts, cen_pts, 0)
+        self.order_highcurvature(in_n_pts, ex_n_pts, cen_pts, 1)
+        self.animate_plot(0)
+
+    def order_highcurvature(self, in_pts, ex_pts, cen_pts, adaptive):
+        hc1 = int(len(in_pts)/2)
+        hc2 = int(len(in_pts)-1)
+        #highcurve_indices = [hc2,hc1] # order backwards
+        highcurve_indices = [i for i, val in enumerate(self.optFrame.high_curv_sutures) if val == 1]
+        
+        for hc in highcurve_indices:
+            hc_ptI = in_pts.pop(hc)
+            in_pts.insert(0,hc_ptI)
+
+            hc_ptE = ex_pts.pop(hc)
+            ex_pts.insert(0,hc_ptE)
+
+            hc_ptC = cen_pts.pop(hc)
+            cen_pts.insert(0,hc_ptC)
+        
+        if adaptive:
+            self.hc_insert_ad_pts = in_pts
+            self.hc_extract_ad_pts = ex_pts
+            self.hc_center_ad_pts = cen_pts
+        else:
+            self.hc_insert_pts = in_pts
+            self.hc_extract_pts = ex_pts
+            self.hc_center_pts = cen_pts
 
     def view_final(self):
         self.optFrame.grid_forget()
@@ -808,8 +862,8 @@ class GUI(ctk.CTk):
         for i in range(self.optFrame.num_pts):
             # draw centerline
             if i != 0:
-                self.final_canvas.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1.5,tags='finalsutures')
-                self.final_canvas_ad.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1.5,tags='finalsutures')
+                self.final_canvas.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1.5,tags='centerline')
+                self.final_canvas_ad.create_line(self.optFrame.center_pts[i][0],self.optFrame.center_pts[i][1],self.optFrame.center_pts[i-1][0],self.optFrame.center_pts[i-1][1],fill='green',width=1.5,tags='centerline')
 
             # draw points and suture lines
             suture_color = self.optFrame.final_suture_colors[self.optFrame.num_pts][i]
@@ -823,8 +877,7 @@ class GUI(ctk.CTk):
             # adpative length
             self.final_canvas_ad.create_oval(self.optFrame.n_insert_pts[i][0]-r,self.optFrame.n_insert_pts[i][1]-r,self.optFrame.n_insert_pts[i][0]+r,self.optFrame.n_insert_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
             self.final_canvas_ad.create_oval(self.optFrame.n_extract_pts[i][0]-r,self.optFrame.n_extract_pts[i][1]-r,self.optFrame.n_extract_pts[i][0]+r,self.optFrame.n_extract_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
-            self.final_canvas_ad.create_line(self.optFrame.n_insert_pts[i][0],self.optFrame.n_insert_pts[i][1],self.optFrame.n_extract_pts[i][0],self.optFrame.n_extract_pts[i][1],fill=suture_color,width=1.5,tags='finalsutures')
-            
+            self.final_canvas_ad.create_line(self.optFrame.n_insert_pts[i][0],self.optFrame.n_insert_pts[i][1],self.optFrame.n_extract_pts[i][0],self.optFrame.n_extract_pts[i][1],fill='black',width=1.5,tags='finalsutures')
 
         self.suture_planner_text.configure(text='- Optimized Suture Placement Plan -\nWound skin is pulled together along centerline before suturing.')
         self.buttons_frame.grid(row=100,column=0,padx=20,pady=5)
@@ -847,6 +900,10 @@ class GUI(ctk.CTk):
         # self.rerun_button.grid(row=0, column=1, padx=20, pady=10)
         self.restart_button.grid(row=0, column=1, padx=40, pady=5)
         self.end_program_button.grid(row=1, column=1, padx=40, pady=0)
+
+        self.order_highcurvature(self.optFrame.insert_pts, self.optFrame.extract_pts, self.optFrame.center_pts, 0)
+        self.order_highcurvature(self.optFrame.n_insert_pts, self.optFrame.n_extract_pts, self.optFrame.center_pts, 1)
+        self.animate_plot(0)
     
     
     def curvature(self, points):
@@ -1297,7 +1354,28 @@ class GUI(ctk.CTk):
         self.start_opt.grid(row=9, column=0, padx=20, pady=10)
 
    
-    
+    def animate_plot(self, i):
+        self.final_canvas.delete('finalsutures')
+        self.final_canvas_ad.delete('finalsutures')
+        r = 3
+
+        for i in range(self.plot_pt_count):
+            color = '#01fd00' if i < self.optFrame.num_high_curv_sutures else 'black'
+
+            # draw points and suture lines
+            self.final_canvas.create_oval(self.hc_insert_pts[i][0]-r,self.hc_insert_pts[i][1]-r,self.hc_insert_pts[i][0]+r,self.hc_insert_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
+            self.final_canvas.create_oval(self.hc_extract_pts[i][0]-r,self.hc_extract_pts[i][1]-r,self.hc_extract_pts[i][0]+r,self.hc_extract_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
+            self.final_canvas.create_line(self.hc_insert_pts[i][0],self.hc_insert_pts[i][1],self.hc_extract_pts[i][0],self.hc_extract_pts[i][1],fill=color,width=1.5,tags='finalsutures')
+
+            # adpative length
+            self.final_canvas_ad.create_oval(self.hc_insert_ad_pts[i][0]-r,self.hc_insert_ad_pts[i][1]-r,self.hc_insert_ad_pts[i][0]+r,self.hc_insert_ad_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
+            self.final_canvas_ad.create_oval(self.hc_extract_ad_pts[i][0]-r,self.hc_extract_ad_pts[i][1]-r,self.hc_extract_ad_pts[i][0]+r,self.hc_extract_ad_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
+            self.final_canvas_ad.create_line(self.hc_insert_ad_pts[i][0],self.hc_insert_ad_pts[i][1],self.hc_extract_ad_pts[i][0],self.hc_extract_ad_pts[i][1],fill=color,width=1.5,tags='finalsutures')
+
+        self.plot_pt_count += 1
+        if self.plot_pt_count <= len(self.hc_insert_pts):
+            self.after(500,lambda: self.animate_plot(i+1))
+
 if __name__ == '__main__':
     app = GUI()
     app.configure(fg_color="#f8f9fa")
