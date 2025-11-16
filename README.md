@@ -45,7 +45,6 @@ A 2D suture placement optimization tool for surgical wound closure planning.
 - **Blue points**: Extraction points  
 - **Green lines**: Prioritized sutures (high-curvature areas)
 - **Black lines**: Standard sutures
-- **Slider**: Adjust number of sutures to compare plans
 - **Loss display**: Shows normalized loss percentage for each plan
 
 ## Troubleshooting
