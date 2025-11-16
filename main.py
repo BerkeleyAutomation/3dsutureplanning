@@ -3,7 +3,7 @@ import customtkinter as ctk
 from tkinter import filedialog
 import scipy.interpolate as inter
 from scipy.spatial.distance import cdist
-from SuturePlacer import SuturePlacer
+from src.SuturePlacer import SuturePlacer
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -21,7 +21,7 @@ import json
 
 import tkinter as tk
 
-import EdgeDetector
+import src.EdgeDetector as EdgeDetector
 from PIL import Image
 
 from matplotlib.collections import LineCollection
@@ -357,7 +357,7 @@ class GUI(ctk.CTk):
         self.button_border_width = 0  # Clean, modern look
         self.button_corner_radius = 8  # Subtle rounded corners
 
-        link_icon = Image.open("external_link.png")
+        link_icon = Image.open("assets/ui/external_link.png")
         self.link_image = ctk.CTkImage(link_icon, size=(15,15))
         copyr = ctk.CTkButton(self, text='This is a Beta Test of software in-progress. Please send feedback to: ria.jain@berkeley.edu', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
         #copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
@@ -374,7 +374,7 @@ class GUI(ctk.CTk):
         suture_planner_title.grid(row=1, column=0, padx=20, pady=(2, 3), sticky='ew')  # Reduced top padding
 
         # autolab logo button
-        autolab_image = Image.open("logo2.png")
+        autolab_image = Image.open("assets/ui/logo2.png")
         self.company_image = ctk.CTkImage(autolab_image, size=(180,45)) #148,45
         self.suture_it_company = ctk.CTkButton(self, text='', image=self.company_image, compound='left', command=self.open_link, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
         self.suture_it_company.grid(row=2, column=0, padx=5, pady=(2, 2))
@@ -390,7 +390,7 @@ class GUI(ctk.CTk):
         self.disclaimer = ctk.CTkLabel(self, text='Disclaimer:\nIn its current stage, Suture-It does not consider factors such as:\n   - Potential skin deformations during implementation\n   - Dynamic skin surface and patient movement during procedure\n   - Differences in equipment materials (needle, thread, etc.)\n   - Depth/3D conceptualization of wound\n\nWe recognize future work that could complement the current program:\n   - Dynamic adjustments to suture plan during suturing\n   - Projection of suture plan onto wound for real-time guidance', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
         self.disclaimer.grid(row=4, column=0, padx=20, pady=10)
 
-        results_image = Image.open("resulting_sutures.png")
+        results_image = Image.open("assets/ui/resulting_sutures.png")
         # Use higher quality rendering - resize with LANCZOS for better quality
         try:
             # Try newer PIL API first
@@ -402,7 +402,7 @@ class GUI(ctk.CTk):
         self.results_fig = ctk.CTkLabel(self, text="", image=self.results_img)
         self.results_fig.grid(row=5, column=0, padx=20, pady=0)
 
-        example_images = Image.open("example_uploads.png")
+        example_images = Image.open("assets/ui/example_uploads.png")
         # Use higher quality rendering - resize with LANCZOS for better quality
         try:
             # Try newer PIL API first
@@ -442,7 +442,7 @@ class GUI(ctk.CTk):
         self.scale_pts = [(331,120),(342,160)]
         # self.a = 0.5
         self.a = 0.77
-        with open('loss.json', 'r') as lossfile:
+        with open('data/loss.json', 'r') as lossfile:
             lossjson = json.load(lossfile)
             self.max_total_loss = lossjson['max_total_loss']
             self.min_total_loss = lossjson['min_total_loss']
@@ -625,7 +625,7 @@ class GUI(ctk.CTk):
             "max_shear_loss": self.max_shear_loss,
             "min_shear_loss": self.min_shear_loss
         }
-        with open('loss.json','w') as lossfile:
+        with open('data/loss.json','w') as lossfile:
             json.dump(lossjson, lossfile, indent=4)
 
         self.quit()

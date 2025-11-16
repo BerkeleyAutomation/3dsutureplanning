@@ -1,10 +1,14 @@
-from EdgeDetector import img_to_line, line_to_spline, line_to_spline_3d, click_points_simple
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.EdgeDetector import img_to_line, line_to_spline, line_to_spline_3d, click_points_simple
 import tensorflow as tf
 from main import suture_display_adj_pipeline
-from SuturePlacer import SuturePlacer
+from src.SuturePlacer import SuturePlacer
 from Optimizer3d import Optimizer3d
-from MeshIngestor import MeshIngestor
-from SutureDisplayAdjust import SutureDisplayAdjust
+from scripts.MeshIngestor import MeshIngestor
+from experiments.SutureDisplayAdjust import SutureDisplayAdjust
 import math
 import scipy.interpolate as inter
 import cv2
@@ -12,9 +16,9 @@ import time
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-from enhance_image import adjust_contrast_saturation
-from image_transform import get_transformed_points
-from utils import get_mm_per_pixel
+from scripts.enhance_image import adjust_contrast_saturation
+from scripts.image_transform import get_transformed_points
+from src.utils import get_mm_per_pixel
 import subprocess
 from SuturePlacement3d import SuturePlacement3d
 import json

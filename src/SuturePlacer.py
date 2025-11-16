@@ -1,8 +1,8 @@
 import random
 
-import DistanceCalculator
-import RewardFunction
-import Constraints
+from . import DistanceCalculator
+from . import RewardFunction
+from . import Constraints
 import scipy.optimize as optim
 import numpy as np
 import matplotlib.pyplot as plt

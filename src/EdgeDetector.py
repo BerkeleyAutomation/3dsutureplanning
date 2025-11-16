@@ -5,13 +5,13 @@ from skimage.morphology import skeletonize, medial_axis
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import scipy.interpolate as inter
-from point_ordering import get_pt_ordering
+from .point_ordering import get_pt_ordering
 # import plantcv
-from SAM import create_mask
-from largestCC import keep_largest_connected_component
-from fillHoles import fillHoles
+from .SAM import create_mask
+from .largestCC import keep_largest_connected_component
+from .fillHoles import fillHoles
 from matplotlib import colormaps
-from utils import click_points_simple
+from .utils import click_points_simple
 import os
 
 '''This class will process an image, and produce a spline of where the wound is based on the image'''
@@ -36,11 +36,11 @@ class EdgeDetector:
 
 def img_to_line(img_path, original_mask):
 
-    cv2.imwrite('temp_images/sam_mask.jpg', original_mask)
+    cv2.imwrite('data/temp_images/sam_mask.jpg', original_mask)
     
     
-    mask = keep_largest_connected_component('temp_images/sam_mask.jpg')
-    cv2.imwrite('temp_images/sam_mask.jpg', mask)
+    mask = keep_largest_connected_component('data/temp_images/sam_mask.jpg')
+    cv2.imwrite('data/temp_images/sam_mask.jpg', mask)
     
     ## VARIABLE WOUND WIDTH STUFF
     # TRY GETTING BORDER OF MASK
@@ -53,11 +53,11 @@ def img_to_line(img_path, original_mask):
 
     # mask post-processing    
     new_edge_detector = EdgeDetector()
-    mask = cv2.imread('temp_images/sam_mask.jpg')
+    mask = cv2.imread('data/temp_images/sam_mask.jpg')
     img_dilated = new_edge_detector.dilate_to_line(mask, 5)
-    cv2.imwrite("temp_images/dilated_sam.jpg", img_dilated)
-    img_dilated = fillHoles('temp_images/dilated_sam.jpg')
-    cv2.imwrite("temp_images/filledHoles.jpg", img_dilated)
+    cv2.imwrite("data/temp_images/dilated_sam.jpg", img_dilated)
+    img_dilated = fillHoles('data/temp_images/dilated_sam.jpg')
+    cv2.imwrite("data/temp_images/filledHoles.jpg", img_dilated)
     
     # threshold to feed into skeletonize
     binary_image = np.where(img_dilated > 0, 1, 0)
@@ -70,13 +70,13 @@ def img_to_line(img_path, original_mask):
     max_dist_hernia = np.max(dist_on_skel)
     #print('dist_on_skel shape: ' + str(dist_on_skel))
 
-    np.save('temp_images/binary_skeleton.npy', skeleton)
+    np.save('data/temp_images/binary_skeleton.npy', skeleton)
 
     # plt.imshow(img)
     # plt.imshow(skeleton)
     # plt.show()
 
-    plt.imsave('temp_images/skeleton_sam.jpg', skeleton)
+    plt.imsave('data/temp_images/skeleton_sam.jpg', skeleton)
 
     # order points 
     #ordered_points = get_pt_ordering(skeleton)
@@ -89,7 +89,7 @@ def img_to_line(img_path, original_mask):
     # print('ordered_points_dist: ')
     # print(ordered_points_dist)
 
-    filled_holes = Image.open("temp_images/sam_mask.jpg")
+    filled_holes = Image.open("data/temp_images/sam_mask.jpg")
     numpydata = np.asarray(filled_holes)
 
     # now, order the points

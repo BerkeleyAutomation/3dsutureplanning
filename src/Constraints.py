@@ -1,4 +1,4 @@
-import DistanceCalculator
+from . import DistanceCalculator
 import math
 import numpy as np
 
