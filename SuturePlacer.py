@@ -43,7 +43,7 @@ class SuturePlacer:
         self.Constraints.wound_points = wound_points
         
         def jac(t):
-            return optim.approx_fprime(t, final_loss)
+            return optim.approx_fprime(t, final_loss, epsilon=1e-6)
 
         def final_loss(t):
             self.RewardFunction.insert_dists, self.RewardFunction.center_dists, self.RewardFunction.extract_dists, insert_pts, center_pts, extract_pts = self.DistanceCalculator.calculate_distances(t)    

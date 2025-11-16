@@ -64,30 +64,30 @@ class OptFrame(ctk.CTkFrame):
 
         # LEFT SIDE
         # frame for optimization details
-        self.infopanel = ctk.CTkFrame(self, fg_color="#7dafce")
+        self.infopanel = ctk.CTkFrame(self, fg_color="#6ba3c0")
         self.infopanel.grid(row=1, column=0, padx=10, pady=10, sticky='nsew')
 
         self.infopanel.grid_rowconfigure(0,weight=1)
         self.infopanel.grid_columnconfigure(0,weight=1)
         self.infopanel.grid_columnconfigure(2,weight=1)
 
-        infoheader = ctk.CTkLabel(self.infopanel, text='Optimization Progress Details', font=('Arial',24,'bold'),justify='center',text_color='#003049')
+        infoheader = ctk.CTkLabel(self.infopanel, text='Optimization Progress Details', font=('Arial',24,'bold'),justify='center',text_color='#003049', fg_color='#6ba3c0')
         infoheader.grid(row=0,column=1,padx=10,pady=10,sticky='ew')
-        progress_label = ctk.CTkLabel(self.infopanel, text='Current Progress', font=('Arial',24),justify='center',text_color='#003049')
+        progress_label = ctk.CTkLabel(self.infopanel, text='Current Progress', font=('Arial',24),justify='center',text_color='#003049', fg_color='#6ba3c0')
         progress_label.grid(row=1,column=1,padx=10,pady=10,sticky='ew')
 
         # left panel progress bar
         self.progress_bar = ctk.CTkProgressBar(self.infopanel, orientation='horizontal', mode='determinate', width=300, progress_color='#780000', fg_color='#f8f9fa')
         self.progress_bar.grid(row=2,column=1,padx=10,pady=10)
         self.progress_bar.set(0)
-        self.progress_percent = ctk.CTkLabel(self.infopanel,text='0%',font=('Arial',24,'bold'),justify='center', text_color='#003049')
+        self.progress_percent = ctk.CTkLabel(self.infopanel,text='0%',font=('Arial',24,'bold'),justify='center', text_color='#003049', fg_color='#6ba3c0')
         self.progress_percent.grid(row=3,column=1,padx=5,pady=5)
 
-        self.cur_suture_info = ctk.CTkLabel(self.infopanel, text='Calculating loss for placement plan with 0 sutures...', font=('Arial',17),justify='center', text_color='#003049')
+        self.cur_suture_info = ctk.CTkLabel(self.infopanel, text='Calculating loss for placement plan with 0 sutures...', font=('Arial',17),justify='center', text_color='#003049', fg_color='#6ba3c0')
         self.cur_suture_info.grid(row=4,column=1,padx=5,pady=5)
 
         # loss information
-        self.loss_frame = ctk.CTkFrame(self.infopanel, fg_color="#7dafce")
+        self.loss_frame = ctk.CTkFrame(self.infopanel, fg_color="#6ba3c0")
         self.loss_frame.grid(row=5,column=1,padx=10,pady=10,sticky='ew')
 
         self.loss_frame.grid_rowconfigure(0,weight=1)
@@ -102,7 +102,7 @@ class OptFrame(ctk.CTkFrame):
         #self.shear_loss_label.grid(row=2,column=1,padx=10,sticky='ew')
 
         # loss plots
-        self.loss_plot_frame = ctk.CTkFrame(self.loss_frame,fg_color="#7dafce")
+        self.loss_plot_frame = ctk.CTkFrame(self.loss_frame,fg_color="#6ba3c0")
         self.loss_plot_frame.grid(row=3, column=1,padx=10,sticky='ew')
 
         self.loss_fig = Figure(figsize=(6,2), dpi=80)
@@ -128,10 +128,10 @@ class OptFrame(ctk.CTkFrame):
 
         # RIGHT SIDE
         # frame for optimization graph visualization
-        self.graphpanel = ctk.CTkFrame(self, fg_color="#7dafce")
+        self.graphpanel = ctk.CTkFrame(self, fg_color="#6ba3c0")
         self.graphpanel.grid(row=1, column=1, padx=10, pady=10, sticky='nsew')
 
-        self.graph_title = ctk.CTkLabel(self.graphpanel, text='Current Suture Plan Visualization', font=('Arial',24,'bold'), text_color='#003049')
+        self.graph_title = ctk.CTkLabel(self.graphpanel, text='Current Suture Plan Visualization', font=('Arial',24,'bold'), text_color='#003049', fg_color='#6ba3c0')
         self.graph_title.grid(row=0,column=0,padx=10,pady=10)
 
         self.graph_fig = Figure(figsize=(4,4), dpi=80)
@@ -343,47 +343,97 @@ class GUI(ctk.CTk):
         self.title('Suture-It')
         self.geometry('1300x840') #'750x750'
         self.grid_columnconfigure(0, weight=1)
+        
+        # Set clean white background for professional medical interface
+        self.configure(fg_color='#FFFFFF')
+        
+        # Professional medical interface styling constants
+        self.button_font = ('Arial', 18, 'bold')  # Slightly smaller, bolder for professional look
+        self.button_width = 180  # Slightly wider for better presence
+        self.button_height = 45  # Slightly shorter for modern look
+        self.button_fg_color = '#6ba3c0'  # Lighter professional blue for better text contrast
+        self.button_text_color = '#FFFFFF'  # White text for better contrast with darker blue
+        self.button_hover_color = '#6a9bb8'  # Slightly darker on hover
+        self.button_border_width = 0  # Clean, modern look
+        self.button_corner_radius = 8  # Subtle rounded corners
 
         link_icon = Image.open("external_link.png")
         self.link_image = ctk.CTkImage(link_icon, size=(15,15))
-        copyr = ctk.CTkButton(self, text='This is a Beta Test of software in-progress. Please send feedback to: cassie.jeng@berkeley.edu', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
+        copyr = ctk.CTkButton(self, text='This is a Beta Test of software in-progress. Please send feedback to: ria.jain@berkeley.edu', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
         #copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
-        copyr.grid(row=0, column=0, padx=0, pady=0, sticky='ew')
+        copyr.grid(row=0, column=0, padx=20, pady=(5, 5), sticky='ew')  # Reduced padding
 
-        suture_planner_title = ctk.CTkLabel(self, text='Suture-It', font=('Arial Bold',50), fg_color='#7dafce', text_color='#003049')
-        suture_planner_title.grid(row=1, column=0, padx=20, pady=10, sticky='ew')
+        suture_planner_title = ctk.CTkLabel(
+            self, text='Suture-It', 
+            font=('Arial', 48, 'bold'),  # Slightly smaller, more refined
+            fg_color='#6ba3c0', text_color='#FFFFFF',  # Lighter blue with white text for better contrast
+            corner_radius=0,  # Clean header
+            anchor='center',  # Center text
+            pady=2  # Very minimal internal vertical padding
+        )
+        suture_planner_title.grid(row=1, column=0, padx=20, pady=(2, 3), sticky='ew')  # Reduced top padding
 
         # autolab logo button
         autolab_image = Image.open("logo2.png")
         self.company_image = ctk.CTkImage(autolab_image, size=(180,45)) #148,45
         self.suture_it_company = ctk.CTkButton(self, text='', image=self.company_image, compound='left', command=self.open_link, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
-        self.suture_it_company.grid(row=2, column=0, padx=5, pady=5)
+        self.suture_it_company.grid(row=2, column=0, padx=5, pady=(2, 2))
 
         # Welcome to Suture-It. Upload a wound image to start!
-        self.suture_planner_text = ctk.CTkLabel(self, text='Welcome to Suture-It!', font=('Arial',24), wraplength=700, text_color='#003049')
-        self.suture_planner_text.grid(row=3, column=0, padx=20, pady=10)
+        self.suture_planner_text = ctk.CTkLabel(
+            self, text='Welcome to Suture-It!', 
+            font=('Arial', 22, 'normal'),  # Slightly smaller, cleaner
+            wraplength=700, text_color='#003049'
+        )
+        self.suture_planner_text.grid(row=3, column=0, padx=20, pady=(5, 10))  # Reduced top padding
 
         self.disclaimer = ctk.CTkLabel(self, text='Disclaimer:\nIn its current stage, Suture-It does not consider factors such as:\n   - Potential skin deformations during implementation\n   - Dynamic skin surface and patient movement during procedure\n   - Differences in equipment materials (needle, thread, etc.)\n   - Depth/3D conceptualization of wound\n\nWe recognize future work that could complement the current program:\n   - Dynamic adjustments to suture plan during suturing\n   - Projection of suture plan onto wound for real-time guidance', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
         self.disclaimer.grid(row=4, column=0, padx=20, pady=10)
 
         results_image = Image.open("resulting_sutures.png")
-        self.results_img = ctk.CTkImage(results_image, size=(835,300)) #2444 × 878
+        # Use higher quality rendering - resize with LANCZOS for better quality
+        try:
+            # Try newer PIL API first
+            results_image_resized = results_image.resize((835, 300), Image.Resampling.LANCZOS)
+        except AttributeError:
+            # Fallback to older PIL API for compatibility
+            results_image_resized = results_image.resize((835, 300), Image.LANCZOS)
+        self.results_img = ctk.CTkImage(results_image_resized, size=(835,300)) #2444 × 878
         self.results_fig = ctk.CTkLabel(self, text="", image=self.results_img)
         self.results_fig.grid(row=5, column=0, padx=20, pady=0)
 
         example_images = Image.open("example_uploads.png")
-        self.example_img = ctk.CTkImage(example_images, size=(445,300))
+        # Use higher quality rendering - resize with LANCZOS for better quality
+        try:
+            # Try newer PIL API first
+            example_images_resized = example_images.resize((445, 300), Image.Resampling.LANCZOS)
+        except AttributeError:
+            # Fallback to older PIL API for compatibility
+            example_images_resized = example_images.resize((445, 300), Image.LANCZOS)
+        self.example_img = ctk.CTkImage(example_images_resized, size=(445,300))
         self.example_fig = ctk.CTkLabel(self, text="", image=self.example_img)
 
         self.results_cap = ctk.CTkLabel(self, text='Example Suture-It Results',font=('Arial',17), wraplength=700, text_color='#003049')
         #self.results_cap.grid(row=6, column=0, padx=20, pady=10)
 
-        self.get_started_button = ctk.CTkButton(self, text='Start Suture-It!', command=self.progress_to_upload, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+        self.get_started_button = ctk.CTkButton(
+            self, text='Start Suture-It!', command=self.progress_to_upload, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
         self.get_started_button.grid(row=100, column=0, padx=20, pady=20)
 
-        self.upload_inst = ctk.CTkLabel(self, text='Example wound images that can be uploaded to this program are shown below and included in the program repository. Accepted file types: *.jpg, *.jpeg, *.png, *.bmp, *.tiff, *.gif\n\nTo use custom wound images:\n   - Search \"open wound images\" on Google Images [Viewer discretion advised for results]\n   - Save chosen image locally\n   - Click \"Upload Wound Image\" below\n   - Navigate to where the image was saved and select to upload', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
+        self.upload_inst = ctk.CTkLabel(self, text='Example wound images that can be uploaded to this program are shown below and included in the program repository. Accepted file types: *.jpg, *.jpeg, *.png, *.bmp, *.tiff, *.gif\n\nTo use custom wound images:\n   1. Search \"open wound images\" on Google Images [Viewer discretion advised for results]\n   2. Save chosen image locally\n   3. Click \"Upload Wound Image\" below\n   4. Navigate to where the image was saved and select to upload', compound='left',justify='left', anchor='w',font=('Arial',17), wraplength=700, text_color='#003049')
 
-        self.upload_image_button = ctk.CTkButton(self, text='Upload Wound Image', command=self.upload_image, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+        self.upload_image_button = ctk.CTkButton(
+            self, text='Upload Wound Image', command=self.upload_image, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
         #self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
 
         self.plot_pt_count = 0
@@ -401,32 +451,167 @@ class GUI(ctk.CTk):
             self.max_shear_loss = lossjson['max_shear_loss']
             self.min_shear_loss = lossjson['min_shear_loss']
 
-        self.suture_drawn_button = ctk.CTkButton(self, text='Done!', command=self.suture_drawn, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.mask_generated = ctk.CTkButton(self, text='Compute Wound Centerline', command=self.compute_centerline, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.start_opt = ctk.CTkButton(self, text='Start Suture Planning', command=self.optimization, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.view_centroids = ctk.CTkButton(self, text='View High Curvature points', command=self.view_curvature_points, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.view_curvature = ctk.CTkButton(self, text='Continue Setup', command=self.compute_curvature, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.see_final_opt = ctk.CTkButton(self, text='View Optimized Suture Plan', command=self.view_final, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+        self.suture_drawn_button = ctk.CTkButton(
+            self, text='Done!', command=self.suture_drawn, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
+        self.mask_generated = ctk.CTkButton(
+            self, text='Compute Wound Centerline', command=self.compute_centerline, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
+        self.start_opt = ctk.CTkButton(
+            self, text='Start Suture Planning', command=self.optimization, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
+        self.view_centroids = ctk.CTkButton(
+            self, text='View Prioritization Points', command=self.view_curvature_points, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
+        self.view_curvature = ctk.CTkButton(
+            self, text='Continue Setup', command=self.compute_curvature, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
+        self.see_final_opt = ctk.CTkButton(
+            self, text='View Optimized Suture Plan', command=self.view_final, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
         
-        self.buttons_frame = ctk.CTkFrame(self, fg_color='#f8f9fa')
+        self.buttons_frame = ctk.CTkFrame(
+            self, fg_color='#f8f9fa', 
+            corner_radius=10,  # Subtle rounded corners
+            border_width=0  # Clean look
+        )
         self.buttons_frame.grid_rowconfigure(0,weight=1)
 
-        self.slider_frame = ctk.CTkFrame(self.buttons_frame, fg_color='#f8f9fa')
+        self.slider_frame = ctk.CTkFrame(
+            self.buttons_frame, fg_color='#f8f9fa',
+            corner_radius=8,
+            border_width=0
+        )
         self.slider_frame.grid_rowconfigure(0,weight=1)
 
-        self.final_canvas_frame = ctk.CTkFrame(self, fg_color='#f8f9fa')
+        self.final_canvas_frame = ctk.CTkFrame(
+            self, fg_color='#f8f9fa',
+            corner_radius=10,
+            border_width=0
+        )
         self.final_canvas_frame.grid_rowconfigure(0,weight=1)
 
         #self.a_slider = ctk.CTkSlider(self.buttons_frame,from_=0, to=1,orientation='horizontal',width=150)
         #self.a_value = ctk.CTkLabel(self.buttons_frame, text=f'Elliptical Minor Axis = {round(self.a,2)}\nIncreasing will relax distance between sutures.',font=('Arial',12), text_color='#003049')
         
-        self.rerun_button = ctk.CTkButton(self.buttons_frame, text='Rerun Suture-It', command=self.rerun, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.restart_button = ctk.CTkButton(self.buttons_frame, text='Restart Suture-It', command=self.restart, width=150, height=50, font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
-        self.end_program_button = ctk.CTkButton(self.buttons_frame, text='Close Program', command=self.on_close, width=150, height=50,font=('Arial',24),fg_color='#7dafce', text_color='#003049', hover_color='#7ea3ba')
+        self.rerun_button = ctk.CTkButton(
+            self.buttons_frame, text='Rerun Suture-It', command=self.rerun, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
+        self.restart_button = ctk.CTkButton(
+            self.buttons_frame, text='Restart Suture-It', command=self.restart, 
+            width=self.button_width, height=self.button_height, 
+            font=self.button_font, fg_color=self.button_fg_color, 
+            text_color=self.button_text_color, hover_color=self.button_hover_color,
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
+        self.end_program_button = ctk.CTkButton(
+            self.buttons_frame, text='Close Program', command=self.on_close, 
+            width=self.button_width, height=self.button_height,
+            font=self.button_font, fg_color='#dc3545',  # Red for close action
+            text_color='#FFFFFF', hover_color='#c82333',
+            border_width=self.button_border_width, corner_radius=self.button_corner_radius
+        )
 
         self.use_curvature = ctk.StringVar(value="off")
-        self.curvature_switch = ctk.CTkSwitch(self, text="Consider high curvature points in optimization",variable=self.use_curvature, onvalue="on", offvalue="off")
-        self.point_count_label = ctk.CTkLabel(self, text='Number of high-curvature points: 0', font=('Arial', 14, 'bold'), text_color='#003049', fg_color="#f8f9fa")
+        
+        # Create a frame for the toggle with labels to make it more obvious
+        self.toggle_frame = ctk.CTkFrame(self, fg_color='#f8f9fa')
+        # Configure columns to have no spacing
+        self.toggle_frame.grid_columnconfigure(0, weight=0, minsize=0)
+        self.toggle_frame.grid_columnconfigure(1, weight=0, minsize=0)
+        self.toggle_frame.grid_columnconfigure(2, weight=0, minsize=0)
+        
+        # Toggle switch with ON/OFF labels for clarity
+        self.curvature_switch = ctk.CTkSwitch(
+            self.toggle_frame, 
+            text="",
+            variable=self.use_curvature, 
+            onvalue="on", 
+            offvalue="off",
+            font=('Arial', 16, 'bold'),
+            fg_color='#dee2e6',  # Light gray background when off
+            progress_color='#6ba3c0',  # Lighter blue when on
+            button_color='#FFFFFF',  # White button for contrast
+            button_hover_color='#f0f0f0',  # Light gray on hover
+            switch_width=60,  # Wider switch for better proportions
+            switch_height=30  # Taller switch for better visibility
+        )
+        
+        # Add ON/OFF state labels to make toggle more obvious
+        self.toggle_state_label = ctk.CTkLabel(
+            self.toggle_frame, 
+            text="OFF", 
+            font=('Arial', 14, 'bold'),
+            text_color='#6c757d',  # Gray when off
+            fg_color='#f8f9fa'
+        )
+        
+        # Toggle description text - fixed width to prevent shifting
+        self.toggle_text_label = ctk.CTkLabel(
+            self.toggle_frame,
+            text="Consider prioritization points in optimization",
+            font=('Arial', 16, 'bold'),
+            text_color='#003049',
+            fg_color='#f8f9fa',
+            anchor='w',  # Left align to prevent shifting
+            width=340  # Reduced width for tighter layout
+        )
+        
+        # Prioritization Points title
+        self.prioritization_title = ctk.CTkLabel(
+            self, 
+            text='Prioritization Points', 
+            font=('Arial', 20, 'bold'),  # Larger title
+            text_color='#003049', 
+            fg_color="#f8f9fa"
+        )
+        
+        # Number label - bigger and under the title
+        self.point_count_label = ctk.CTkLabel(
+            self, text='Number of prioritization points: 0', 
+            font=('Arial', 18, 'bold'),  # Much larger
+            text_color='#003049', 
+            fg_color="#f8f9fa"
+        )
+    
+    def update_toggle_label(self):
+        """Update the toggle state label to show ON/OFF"""
+        if hasattr(self, 'toggle_state_label'):
+            if self.use_curvature.get() == "on":
+                self.toggle_state_label.configure(text="ON", text_color='#6ba3c0')  # Lighter blue when on
+            else:
+                self.toggle_state_label.configure(text="OFF", text_color='#6c757d')  # Gray when off
+            # Force layout update to prevent text shifting
+            if hasattr(self, 'toggle_frame'):
+                self.toggle_frame.update_idletasks()
 
     def on_close(self):
         #self.destroy()
@@ -451,7 +636,7 @@ class GUI(ctk.CTk):
         webbrowser.open_new_tab(auto_lab_url)
 
     def open_email(self):
-        email_address = 'cassie.jeng@berkeley.edu'
+        email_address = 'ria.jain@berkeley.edu'
         subject = 'Suture-It Interface Beta Testing'
         mail_url = f"mailto:{email_address}?subject={subject}"
         webbrowser.open_new(mail_url)
@@ -530,7 +715,7 @@ class GUI(ctk.CTk):
         # self.image_canvas.unbind('<Button-1>')
         # self.image_canvas.delete('suture')
 
-        self.suture_planner_text.configure(text='Click and drag to draw the outline of the wound! Release when done. The region should be fully enclosed. Click and drag again to redraw if needed.')
+        self.suture_planner_text.configure(text='Click and drag to trace the outline of the wound!\nRelease when done. The region should be fully enclosed in blue.\nClick and drag again to retrace if needed.')
 
         self.drawing = False
         self.points = []
@@ -554,13 +739,20 @@ class GUI(ctk.CTk):
 
     def upload_image(self):
         image_path = filedialog.askopenfilename(title='Select an Image', filetypes=[('Image Files','*.jpg *.jpeg *.png *.bmp *.tiff *.gif')])
+        
+        # Check if image was selected BEFORE modifying UI
+        if not image_path:
+            # User canceled - don't modify UI, just return silently
+            return
+        
+        # Only hide UI elements if we have a valid image
         #self.disclaimer.grid_forget()
         #self.results_fig.grid_forget()
         self.upload_inst.grid_forget()
         self.example_fig.grid_forget()
         #self.results_cap.grid_forget()
         
-        if image_path:
+        try:
             self.image_path = image_path
             self.upload_image_button.grid_forget()
             self.image = Image.open(self.image_path).resize((600,400))
@@ -575,8 +767,12 @@ class GUI(ctk.CTk):
             # self.image_canvas.bind('<Button-1>', self.on_image_click)
             # self.suture_drawn_button.grid(row=100, column=0, padx=20, pady=20)
             self.suture_drawn()
-        else:
-            print('No image selected. Exiting.')
+        except Exception as e:
+            # If there's an error loading the image, restore UI and show message
+            print(f'Error loading image: {e}')
+            self.upload_inst.grid(row=4, column=0, padx=20, pady=10)
+            self.example_fig.grid(row=5, column=0, padx=20, pady=0)
+            self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
             return
     
     def extend_hernia(self, ordered_pts, max_dist_hernia):
@@ -635,7 +831,7 @@ class GUI(ctk.CTk):
         self.tck, u = inter.splprep([self.x,self.y], k=5)
 
         self.mask_generated.grid_forget()
-        self.suture_planner_text.configure(text='Wound centerline is displayed in red. Press the button below to begin suture planning.')
+        self.suture_planner_text.configure(text='Wound centerline is displayed in red.\nPress the button below to begin suture planning.')
         
         self.view_curvature.grid(row=100, column=0, padx=20, pady=20)
     
@@ -644,7 +840,16 @@ class GUI(ctk.CTk):
 
         self.start_opt.grid_forget()
         self.curvature_switch.grid_forget()
-        self.point_count_label.grid_forget()
+        if hasattr(self, 'toggle_frame'):
+            self.toggle_frame.grid_forget()
+        if hasattr(self, 'prioritization_title'):
+            self.prioritization_title.grid_forget()
+        if hasattr(self, 'point_count_label'):
+            self.point_count_label.grid_forget()
+        if hasattr(self, 'prioritization_title'):
+            self.prioritization_title.grid_forget()
+        if hasattr(self, 'toggle_frame'):
+            self.toggle_frame.grid_forget()
         self.image_canvas.destroy()
         self.suture_planner_text.configure(text='Running Suture Placement Optimization!')
 
@@ -700,7 +905,16 @@ class GUI(ctk.CTk):
         self.restart_button.grid_forget()
         self.buttons_frame.grid_forget()
         self.curvature_switch.grid_forget()
-        self.point_count_label.grid_forget()
+        if hasattr(self, 'toggle_frame'):
+            self.toggle_frame.grid_forget()
+        if hasattr(self, 'prioritization_title'):
+            self.prioritization_title.grid_forget()
+        if hasattr(self, 'point_count_label'):
+            self.point_count_label.grid_forget()
+        if hasattr(self, 'prioritization_title'):
+            self.prioritization_title.grid_forget()
+        if hasattr(self, 'toggle_frame'):
+            self.toggle_frame.grid_forget()
         self.view_curvature.grid_forget()
         self.optimization()
 
@@ -723,7 +937,16 @@ class GUI(ctk.CTk):
         self.buttons_frame.grid_forget()
         self.slider_frame.grid_forget()
         self.curvature_switch.grid_forget()
-        self.point_count_label.grid_forget()
+        if hasattr(self, 'toggle_frame'):
+            self.toggle_frame.grid_forget()
+        if hasattr(self, 'prioritization_title'):
+            self.prioritization_title.grid_forget()
+        if hasattr(self, 'point_count_label'):
+            self.point_count_label.grid_forget()
+        if hasattr(self, 'prioritization_title'):
+            self.prioritization_title.grid_forget()
+        if hasattr(self, 'toggle_frame'):
+            self.toggle_frame.grid_forget()
         self.view_curvature.grid_forget()
 
         self.get_started_button.grid_forget()
@@ -740,12 +963,40 @@ class GUI(ctk.CTk):
         self.a = 0.77
     
     def change_suture_plan(self,event):
+        # Cancel any pending animate_plot calls first
+        try:
+            if hasattr(self, '_animate_job_id'):
+                self.after_cancel(self._animate_job_id)
+        except (AttributeError, ValueError):
+            pass  # No pending job or job already executed
+        
+        # Reset animation state
         self.plot_pt_count = 0
         self.final_canvas.delete('finalsutures')
         self.final_canvas_ad.delete('finalsutures')
+        self.final_canvas.delete('needleguide')  # Also clear needle guides
+        self.final_canvas_ad.delete('needleguide')
+        
         self.plan_num = math.floor(self.plan_num_slider.get())
         self.plan_num_slider.set(self.plan_num)
-        self.plan_num_label.configure(text=f'To view other suture plans, adjust number of sutures using slider.\nDisplaying {self.plan_num} sutures.')
+        
+        # Get loss value for this suture plan
+        loss_text = ""
+        if hasattr(self.optFrame, 'total_array') and len(self.optFrame.total_array) > 0:
+            idx = self.plan_num - self.start_range
+            if 0 <= idx < len(self.optFrame.total_array):
+                # Normalize loss using same method as update_losses (min/max normalization)
+                total_loss = self.optFrame.total_array[idx]
+                if hasattr(self, 'max_total_loss') and hasattr(self, 'min_total_loss') and \
+                   self.max_total_loss != self.min_total_loss:
+                    normalized_loss = ((total_loss - self.min_total_loss) / (self.max_total_loss - self.min_total_loss)) * 100
+                    loss_text = f", Loss = {normalized_loss:.2f}%"
+                elif hasattr(self, 'max_total_loss') and self.max_total_loss > 0:
+                    # Fallback to max normalization if min/max not available
+                    normalized_loss = (total_loss / self.max_total_loss) * 100
+                    loss_text = f", Loss = {normalized_loss:.2f}%"
+        
+        self.plan_num_label.configure(text=f'Displaying {self.plan_num} sutures{loss_text}.\nTo view other suture plans, adjust number of sutures using slider.')
 
         # plot suture points
         in_pts = self.optFrame.planned_insert_pts[self.plan_num-self.start_range]
@@ -779,17 +1030,34 @@ class GUI(ctk.CTk):
         
         self.order_highcurvature(in_pts, ex_pts, cen_pts, 0)
         self.order_highcurvature(in_n_pts, ex_n_pts, cen_pts, 1)
+        
+        # Restart animation from the beginning
         self.animate_plot(0)
 
     def order_highcurvature(self, in_pts, ex_pts, cen_pts, adaptive):
         hc1 = int(len(in_pts)/2)
         hc2 = int(len(in_pts)-1)
         #highcurve_indices = [hc2,hc1] # order backwards
-        highcurve_indices = [i for i, val in enumerate(self.optFrame.high_curv_sutures) if val == 1]
         
-        for hc in highcurve_indices:
-            hc_ptI = in_pts.pop(hc)
-            in_pts.insert(0,hc_ptI)
+        # Use final_suture_colors to determine which sutures are prioritized (green = #01fd00)
+        # This is stored per suture count, so it matches the current plan
+        num_sutures = len(in_pts)
+        if num_sutures in self.optFrame.final_suture_colors:
+            suture_colors = self.optFrame.final_suture_colors[num_sutures]
+            # Find indices where color is green (#01fd00) - these are prioritized
+            highcurve_indices = [i for i, color in enumerate(suture_colors) if color == '#01fd00']
+        else:
+            # Fallback to old method if colors not available
+            highcurve_indices = [i for i, val in enumerate(self.optFrame.high_curv_sutures) if val == 1] if hasattr(self.optFrame, 'high_curv_sutures') else []
+        
+        # Filter indices to only include those that are valid for the current list length
+        valid_indices = [hc for hc in highcurve_indices if 0 <= hc < len(in_pts)]
+        
+        # Process in reverse order to avoid index shifting issues
+        for hc in sorted(valid_indices, reverse=True):
+            if 0 <= hc < len(in_pts):
+                hc_ptI = in_pts.pop(hc)
+                in_pts.insert(0,hc_ptI)
 
             hc_ptE = ex_pts.pop(hc)
             ex_pts.insert(0,hc_ptE)
@@ -830,8 +1098,8 @@ class GUI(ctk.CTk):
 
         self.final_canvas_cap = ctk.CTkLabel(self.final_canvas_frame, text='Uniform length sutures along centerline of simulated closed wound', font=('Arial',17), wraplength=600, text_color='#003049')
         self.final_canvas_ad_cap = ctk.CTkLabel(self.final_canvas_frame, text='Variable length sutures showing insert/extract points on open wound skin', font=('Arial',17), wraplength=600, text_color='#003049')
-        self.final_canvas_cap.grid(row=1, column=1, padx=5, pady=0)
-        self.final_canvas_ad_cap.grid(row=1, column=0, padx=5, pady=0)
+        self.final_canvas_cap.grid(row=1, column=1, padx=5, pady=(5, 5))  # Adequate vertical padding
+        self.final_canvas_ad_cap.grid(row=1, column=0, padx=5, pady=(5, 5))  # Adequate vertical padding
 
         self.image = Image.open(self.image_path).resize((600,400))
         
@@ -883,23 +1151,57 @@ class GUI(ctk.CTk):
         self.buttons_frame.grid(row=100,column=0,padx=20,pady=5)
         self.slider_frame.grid(row=1,column=0,padx=10,pady=5)
 
-        self.plan_num_slider = ctk.CTkSlider(self.slider_frame,from_=self.start_range, to=self.end_range-1,orientation='horizontal',width=250)
+        # Make slider wider and more visible with prominent circular handle
+        self.plan_num_slider = ctk.CTkSlider(
+            self.slider_frame,
+            from_=self.start_range, 
+            to=self.end_range-1,
+            orientation='horizontal',
+            width=400,
+            height=12,  # Much thinner slider
+            button_color='#FFFFFF',  # White handle (like reference)
+            button_hover_color='#e0e0e0',  # Subtle hover
+            progress_color='#6ba3c0',  # Lighter blue progress bar
+            fg_color='#E8E8E8',  # Light gray background track (like reference)
+            border_width=0,  # Clean, no border
+            button_length=16  # Smaller handle to match thinner slider
+        )
         self.plan_num_slider.set(self.optFrame.best_sutures)
-        self.plan_num_label = ctk.CTkLabel(self.buttons_frame, text=f'To view other suture plans, adjust number of sutures using slider.\nDisplaying {self.optFrame.best_sutures} sutures.',font=('Arial',17), text_color='#003049')
+        
+        # Get loss value for best sutures
+        loss_text = ""
+        if hasattr(self.optFrame, 'total_array') and len(self.optFrame.total_array) > 0:
+            idx = self.optFrame.best_sutures - self.start_range
+            if 0 <= idx < len(self.optFrame.total_array):
+                # Normalize loss using same method as update_losses (min/max normalization)
+                total_loss = self.optFrame.total_array[idx]
+                if hasattr(self, 'max_total_loss') and hasattr(self, 'min_total_loss') and \
+                   self.max_total_loss != self.min_total_loss:
+                    normalized_loss = ((total_loss - self.min_total_loss) / (self.max_total_loss - self.min_total_loss)) * 100
+                    loss_text = f", Loss = {normalized_loss:.2f}%"
+                elif hasattr(self, 'max_total_loss') and self.max_total_loss > 0:
+                    # Fallback to max normalization if min/max not available
+                    normalized_loss = (total_loss / self.max_total_loss) * 100
+                    loss_text = f", Loss = {normalized_loss:.2f}%"
+        
+        self.plan_num_label = ctk.CTkLabel(self.buttons_frame, text=f'Displaying {self.optFrame.best_sutures} sutures{loss_text}.\nTo view other suture plans, adjust number of sutures using slider.',font=('Arial',17), text_color='#003049')
         self.min_label = ctk.CTkLabel(self.slider_frame, text=f'{self.start_range}',font=('Arial',17), text_color='#003049')
         self.max_label = ctk.CTkLabel(self.slider_frame, text=f'{self.end_range-1}',font=('Arial',17), text_color='#003049')
 
-        self.plan_num_label.grid(row=0, column=0, padx=10,pady=0)
-        self.plan_num_slider.grid(row=0,column=1,padx=0,pady=0)
+        self.plan_num_label.grid(row=0, column=0, padx=10, pady=(5, 5))  # Adequate vertical padding
+        self.plan_num_slider.grid(row=0,column=1,padx=10,pady=5, sticky='ew')  # Added sticky='ew' to expand
         self.plan_num_slider.bind('<ButtonRelease-1>',self.change_suture_plan)
-        self.min_label.grid(row=0,column=0,padx=0,pady=0)
-        self.max_label.grid(row=0,column=2,padx=0,pady=0)
+        self.min_label.grid(row=0,column=0,padx=5,pady=(5, 5))  # Adequate vertical padding
+        self.max_label.grid(row=0,column=2,padx=5,pady=(5, 5))  # Adequate vertical padding
+        
+        # Configure slider frame columns to expand properly
+        self.slider_frame.grid_columnconfigure(1, weight=1, minsize=400)
         # self.a_value.grid(row=0, column=0, padx=0,pady=10)
         # self.a_slider.grid(row=1,column=0,padx=0,pady=10)
         # self.a_slider.bind('<ButtonRelease-1>',self.slider_update)
         # self.rerun_button.grid(row=0, column=1, padx=20, pady=10)
         self.restart_button.grid(row=0, column=1, padx=40, pady=5)
-        self.end_program_button.grid(row=1, column=1, padx=40, pady=0)
+        self.end_program_button.grid(row=1, column=1, padx=40, pady=(5, 5))  # Adequate vertical padding
 
         self.order_highcurvature(self.optFrame.insert_pts, self.optFrame.extract_pts, self.optFrame.center_pts, 0)
         self.order_highcurvature(self.optFrame.n_insert_pts, self.optFrame.n_extract_pts, self.optFrame.center_pts, 1)
@@ -1275,8 +1577,14 @@ class GUI(ctk.CTk):
         # gui teardown + update
         self.view_curvature.grid_forget()
         self.curvature_switch.grid_forget()
+        if hasattr(self, 'toggle_frame'):
+            self.toggle_frame.grid_forget()
+        if hasattr(self, 'prioritization_title'):
+            self.prioritization_title.grid_forget()
+        if hasattr(self, 'point_count_label'):
+            self.point_count_label.grid_forget()
         self.image_canvas.delete("all")
-        self.suture_planner_text.configure(text='Segmented Centerline and Max Curvature Points')
+        self.suture_planner_text.configure(text='Segmented Centerline and Prioritization Points')
 
         self.image_canvas.grid(row=4, column=0, padx=20, pady=20) 
         
@@ -1321,7 +1629,7 @@ class GUI(ctk.CTk):
         if hasattr(self, 'legend_frame'):
             self.legend_frame.grid_forget()
         self.image_canvas.delete("all")
-        self.suture_planner_text.configure(text='High Curvature Points')
+        self.suture_planner_text.configure(text='Prioritization Points')
 
         # plot centerline
         points_t = np.linspace(0, 1, 1000)
@@ -1348,33 +1656,76 @@ class GUI(ctk.CTk):
         self.image_canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
         self.image_canvas.image = self.tk_image
 
-        self.point_count_label.configure(text=f'Number of high-curvature points: {len(self.centroids)}', font=('Arial', 14, 'bold'), text_color='#003049')
-        self.point_count_label.grid(row=7, column=0, padx=20, pady=5) 
-        self.curvature_switch.grid(row=8, column=0, padx=20, pady=10)
-        self.start_opt.grid(row=9, column=0, padx=20, pady=10)
+        # Update and display prioritization points section (title removed - already above image)
+        self.point_count_label.configure(text=f'Number of prioritization points: {len(self.centroids)}', font=('Arial', 18, 'bold'), text_color='#003049')
+        self.point_count_label.grid(row=6, column=0, padx=20, pady=(0, 5))  # Moved up since title removed
+        
+        # Display toggle with labels - minimal spacing
+        # Order: text label, ON/OFF label (left of toggle), toggle switch
+        self.toggle_frame.grid(row=7, column=0, padx=20, pady=(5, 5))
+        self.toggle_text_label.grid(row=0, column=0, padx=(0, 5), pady=5, sticky='w')  # Text on left with spacing
+        self.toggle_state_label.grid(row=0, column=1, padx=(0, 0), pady=5)  # ON/OFF label left of toggle
+        self.curvature_switch.grid(row=0, column=2, padx=0, pady=5)  # Toggle switch on right
+        
+        # Update toggle state label based on current value
+        self.update_toggle_label()
+        
+        # Bind toggle change to update label
+        try:
+            self.use_curvature.trace_add('write', lambda *args: self.update_toggle_label())
+        except AttributeError:
+            # Fallback for older tkinter versions
+            self.use_curvature.trace('w', lambda *args: self.update_toggle_label())
+        
+        self.start_opt.grid(row=9, column=0, padx=20, pady=(5, 10))  # Reduced top padding, keep bottom
 
    
     def animate_plot(self, i):
+        # Check if lists exist and have valid length
+        if not hasattr(self, 'hc_insert_pts') or not hasattr(self, 'hc_extract_pts') or \
+           not hasattr(self, 'hc_insert_ad_pts') or not hasattr(self, 'hc_extract_ad_pts'):
+            return
+        
+        max_len = min(len(self.hc_insert_pts), len(self.hc_extract_pts), 
+                     len(self.hc_insert_ad_pts), len(self.hc_extract_ad_pts))
+        
+        if max_len == 0:
+            return
+            
         self.final_canvas.delete('finalsutures')
         self.final_canvas_ad.delete('finalsutures')
         r = 3
 
-        for i in range(self.plot_pt_count):
-            color = '#01fd00' if i < self.optFrame.num_high_curv_sutures else 'black'
+        # Use j for loop variable to avoid shadowing parameter i
+        # Count how many prioritized sutures (green) are in the current plan
+        num_prioritized = 0
+        if hasattr(self, 'hc_insert_pts') and len(self.hc_insert_pts) > 0:
+            # The prioritized sutures should be at the front after ordering
+            # Count them by checking if we have suture colors stored
+            if hasattr(self.optFrame, 'final_suture_colors') and len(self.hc_insert_pts) in self.optFrame.final_suture_colors:
+                suture_colors = self.optFrame.final_suture_colors[len(self.hc_insert_pts)]
+                num_prioritized = sum(1 for color in suture_colors if color == '#01fd00')
+            else:
+                # Fallback to stored value
+                num_prioritized = getattr(self.optFrame, 'num_high_curv_sutures', 0)
+        
+        for j in range(min(self.plot_pt_count, max_len)):
+            color = '#01fd00' if j < num_prioritized else 'black'
 
             # draw points and suture lines
-            self.final_canvas.create_oval(self.hc_insert_pts[i][0]-r,self.hc_insert_pts[i][1]-r,self.hc_insert_pts[i][0]+r,self.hc_insert_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
-            self.final_canvas.create_oval(self.hc_extract_pts[i][0]-r,self.hc_extract_pts[i][1]-r,self.hc_extract_pts[i][0]+r,self.hc_extract_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
-            self.final_canvas.create_line(self.hc_insert_pts[i][0],self.hc_insert_pts[i][1],self.hc_extract_pts[i][0],self.hc_extract_pts[i][1],fill=color,width=1.5,tags='finalsutures')
+            self.final_canvas.create_oval(self.hc_insert_pts[j][0]-r,self.hc_insert_pts[j][1]-r,self.hc_insert_pts[j][0]+r,self.hc_insert_pts[j][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
+            self.final_canvas.create_oval(self.hc_extract_pts[j][0]-r,self.hc_extract_pts[j][1]-r,self.hc_extract_pts[j][0]+r,self.hc_extract_pts[j][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
+            self.final_canvas.create_line(self.hc_insert_pts[j][0],self.hc_insert_pts[j][1],self.hc_extract_pts[j][0],self.hc_extract_pts[j][1],fill=color,width=1.5,tags='finalsutures')
 
             # adpative length
-            self.final_canvas_ad.create_oval(self.hc_insert_ad_pts[i][0]-r,self.hc_insert_ad_pts[i][1]-r,self.hc_insert_ad_pts[i][0]+r,self.hc_insert_ad_pts[i][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
-            self.final_canvas_ad.create_oval(self.hc_extract_ad_pts[i][0]-r,self.hc_extract_ad_pts[i][1]-r,self.hc_extract_ad_pts[i][0]+r,self.hc_extract_ad_pts[i][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
-            self.final_canvas_ad.create_line(self.hc_insert_ad_pts[i][0],self.hc_insert_ad_pts[i][1],self.hc_extract_ad_pts[i][0],self.hc_extract_ad_pts[i][1],fill=color,width=1.5,tags='finalsutures')
+            self.final_canvas_ad.create_oval(self.hc_insert_ad_pts[j][0]-r,self.hc_insert_ad_pts[j][1]-r,self.hc_insert_ad_pts[j][0]+r,self.hc_insert_ad_pts[j][1]+r,fill='red',outline='',tags='finalsutures') #Insertion
+            self.final_canvas_ad.create_oval(self.hc_extract_ad_pts[j][0]-r,self.hc_extract_ad_pts[j][1]-r,self.hc_extract_ad_pts[j][0]+r,self.hc_extract_ad_pts[j][1]+r,fill='blue',outline='',tags='finalsutures') #Extraction
+            self.final_canvas_ad.create_line(self.hc_insert_ad_pts[j][0],self.hc_insert_ad_pts[j][1],self.hc_extract_ad_pts[j][0],self.hc_extract_ad_pts[j][1],fill=color,width=1.5,tags='finalsutures')
 
         self.plot_pt_count += 1
-        if self.plot_pt_count <= len(self.hc_insert_pts):
-            self.after(500,lambda: self.animate_plot(i+1))
+        if self.plot_pt_count <= max_len:
+            # Use a default argument to capture the current value and store job ID
+            self._animate_job_id = self.after(500, lambda count=self.plot_pt_count: self.animate_plot(count))
 
 if __name__ == '__main__':
     app = GUI()
