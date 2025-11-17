@@ -1,38 +1,49 @@
-# Import Packages
-import customtkinter as ctk
-from tkinter import filedialog
-import scipy.interpolate as inter
-from scipy.spatial.distance import cdist
-from src.SuturePlacer import SuturePlacer
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+"""
+Suture-It: Main GUI application for suture placement planning.
+
+This module provides a graphical interface for:
+- Uploading and tracing wound images
+- Computing wound centerlines
+- Identifying prioritization points (high-curvature areas)
+- Optimizing suture placement
+- Visualizing results
+"""
+
+import sys
+import json
+import math
 import webbrowser
 
-# from InsertionPointGenerator import InsertionPointGenerator
-# from ScaleGenerator import ScaleGenerator
-# from SutureDisplayAdjust2D import SutureDisplayAdjust2D
-# import RewardFunction
 import numpy as np
 import cv2
-import math
-from PIL import Image, ImageTk, ImageDraw
-import json
-
 import tkinter as tk
+from tkinter import filedialog
 
-import src.EdgeDetector as EdgeDetector
-from PIL import Image
+import customtkinter as ctk
+from PIL import Image, ImageTk, ImageDraw
 
-from matplotlib.collections import LineCollection
+import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap, Normalize
-from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
-import sys
+
+import scipy.interpolate as inter
+from scipy.spatial.distance import cdist
+
+from src.SuturePlacer import SuturePlacer
+import src.EdgeDetector as EdgeDetector
 
 class OptFrame(ctk.CTkFrame):
+    """
+    Frame displaying optimization progress and results.
+    
+    Shows progress bar, loss plots, and current suture plan visualization
+    during the optimization process.
+    """
+    
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
 
@@ -140,7 +151,7 @@ class OptFrame(ctk.CTkFrame):
         self.graph_canvas = FigureCanvasTkAgg(self.graph_fig, self.graphpanel)
         self.graph_canvas.get_tk_widget().grid(row=1,column=0,padx=10,pady=10)
 
-        # inital plot
+        # Initial plot
         self.graph_ax.text(0.5,0.5,'Waiting for optimization...',ha='center',va='center',transform=self.graph_ax.transAxes,fontsize=17)
         self.graph_ax.set_xlim(0,1)
         self.graph_ax.set_ylim(0,1)
@@ -159,7 +170,6 @@ class OptFrame(ctk.CTkFrame):
         # update current number of sutures being optimized
         self.cur_num_sutures = num_sutures
 
-        #self.cur_suture_info.configure(text=f'Testing: {num_sutures} sutures')
         self.cur_suture_info.configure(text=f'Calculating loss for placement plan with {num_sutures} sutures...')
         if self.test_suture_range[1] > 0:
             progress = (num_sutures - self.test_suture_range[0]) / (self.test_suture_range[1] - self.test_suture_range[0] + 1)
@@ -191,10 +201,7 @@ class OptFrame(ctk.CTkFrame):
         normalized_closure_loss = ((closure_loss - self.parent_root.min_closure_loss) / (self.parent_root.max_closure_loss - self.parent_root.min_closure_loss)) * 100
         normalized_shear_loss = ((shear_loss - self.parent_root.min_shear_loss) / (self.parent_root.max_shear_loss - self.parent_root.min_shear_loss)) * 100
 
-        # update display of loss information
-        # self.total_loss_label.configure(text=f'Total Loss: {total_loss:.0f}')
-        # self.closure_loss_label.configure(text=f'Closure Loss: {closure_loss:.0f}')
-        # self.shear_loss_label.configure(text=f'Shear Loss: {shear_loss:.0f}')
+        # Update display of loss information (normalized percentages)
         self.total_loss_label.configure(text=f'Total Loss: {normalized_total_loss:.2f}%')
         self.closure_loss_label.configure(text=f'Closure Loss: {normalized_closure_loss:.2f}%')
         self.shear_loss_label.configure(text=f'Shear Loss: {normalized_shear_loss:.2f}%')
@@ -219,7 +226,7 @@ class OptFrame(ctk.CTkFrame):
         self.total_ax.set_ylabel('Loss')
         self.total_ax.set_xticks(loss_X)
 
-        # # update canvas
+        # Update canvas
         self.loss_fig_canvas.draw()
         self.parent_root.update()
     
@@ -334,11 +341,21 @@ class OptFrame(ctk.CTkFrame):
         print(f'Best results: {self.best_sutures} sutures with {self.normalized_best_loss:.2f}% loss')
 
 class GUI(ctk.CTk):
+    """
+    Main GUI application for Suture-It.
+    
+    Provides a complete workflow:
+    1. Image upload and wound tracing
+    2. Centerline computation
+    3. Prioritization point identification
+    4. Suture placement optimization
+    5. Results visualization
+    """
+    
     def __init__(self):
         super().__init__()
 
         ctk.set_appearance_mode('System')
-        #ctk.set_default_color_theme('green')
 
         self.title('Suture-It')
         self.geometry('1300x840') #'750x750'
@@ -359,8 +376,17 @@ class GUI(ctk.CTk):
 
         link_icon = Image.open("assets/ui/external_link.png")
         self.link_image = ctk.CTkImage(link_icon, size=(15,15))
-        copyr = ctk.CTkButton(self, text='This is a Beta Test of software in-progress. Please send feedback to: ria.jain@berkeley.edu', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
-        #copyr = ctk.CTkButton(self, text='Interface Beta Test -- Please share only with permission from AUTOLab (cassie.jeng@berkeley.edu)', image=self.link_image, compound='right', font=('Arial',15), command=self.open_email, fg_color='#f8f9fa', text_color='#003049', hover_color="#dee2e6")
+        copyr = ctk.CTkButton(
+            self, 
+            text='This is a Beta Test of software in-progress. Please send feedback to: ria.jain@berkeley.edu', 
+            image=self.link_image, 
+            compound='right', 
+            font=('Arial',15), 
+            command=self.open_email, 
+            fg_color='#f8f9fa', 
+            text_color='#003049', 
+            hover_color="#dee2e6"
+        )
         copyr.grid(row=0, column=0, padx=20, pady=(5, 5), sticky='ew')  # Reduced padding
 
         suture_planner_title = ctk.CTkLabel(
@@ -413,8 +439,13 @@ class GUI(ctk.CTk):
         self.example_img = ctk.CTkImage(example_images_resized, size=(445,300))
         self.example_fig = ctk.CTkLabel(self, text="", image=self.example_img)
 
-        self.results_cap = ctk.CTkLabel(self, text='Example Suture-It Results',font=('Arial',17), wraplength=700, text_color='#003049')
-        #self.results_cap.grid(row=6, column=0, padx=20, pady=10)
+        self.results_cap = ctk.CTkLabel(
+            self, 
+            text='Example Suture-It Results',
+            font=('Arial',17), 
+            wraplength=700, 
+            text_color='#003049'
+        )
 
         self.get_started_button = ctk.CTkButton(
             self, text='Start Suture-It!', command=self.progress_to_upload, 
@@ -434,7 +465,6 @@ class GUI(ctk.CTk):
             text_color=self.button_text_color, hover_color=self.button_hover_color,
             border_width=self.button_border_width, corner_radius=self.button_corner_radius
         )
-        #self.upload_image_button.grid(row=100, column=0, padx=20, pady=20)
 
         self.plot_pt_count = 0
 
@@ -515,8 +545,6 @@ class GUI(ctk.CTk):
         )
         self.final_canvas_frame.grid_rowconfigure(0,weight=1)
 
-        #self.a_slider = ctk.CTkSlider(self.buttons_frame,from_=0, to=1,orientation='horizontal',width=150)
-        #self.a_value = ctk.CTkLabel(self.buttons_frame, text=f'Elliptical Minor Axis = {round(self.a,2)}\nIncreasing will relax distance between sutures.',font=('Arial',12), text_color='#003049')
         
         self.rerun_button = ctk.CTkButton(
             self.buttons_frame, text='Rerun Suture-It', command=self.rerun, 
@@ -614,7 +642,7 @@ class GUI(ctk.CTk):
                 self.toggle_frame.update_idletasks()
 
     def on_close(self):
-        #self.destroy()
+        """Save loss data and close application."""
 
         # write max and min losses to loss.json file
         lossjson = {
